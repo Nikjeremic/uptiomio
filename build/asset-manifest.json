@@ -1,0 +1,20 @@
+{
+  "files": {
+    "main.css": "/static/css/main.dc2643c5.css",
+    "main.js": "/static/js/main.970115fe.js",
+    "static/media/primeicons.svg": "/static/media/primeicons.e1441b135b3ca9ad643c.svg",
+    "static/media/primeicons.eot": "/static/media/primeicons.d44157bdfa026dc877af.eot",
+    "static/media/primeicons.woff": "/static/media/primeicons.10d3152104f2208ac82a.woff",
+    "static/media/primeicons.ttf": "/static/media/primeicons.ea5358601d0a3fd6670b.ttf",
+    "static/media/Uptimio Logo.png": "/static/media/Uptimio Logo.dff031b2e05e36e73dba.png",
+    "static/media/primeicons.woff2": "/static/media/primeicons.78172950b335ccdb94e2.woff2",
+    "static/media/color.png": "/static/media/color.6441e63a57ccc5105bad.png",
+    "index.html": "/index.html",
+    "main.dc2643c5.css.map": "/static/css/main.dc2643c5.css.map",
+    "main.970115fe.js.map": "/static/js/main.970115fe.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.dc2643c5.css",
+    "static/js/main.970115fe.js"
+  ]
+}

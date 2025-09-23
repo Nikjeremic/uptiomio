@@ -1,0 +1,140 @@
+.invoice-list-container {
+  padding: 0;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.header-info h2 {
+  color: #1f2937;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.list-subtitle {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.refresh-button {
+  background: var(--primary);
+  border: none;
+  color: var(--text);
+}
+
+.refresh-button:hover {
+  background: #5a67d8;
+}
+
+.invoices-card {
+  border: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.invoices-table {
+  border: none;
+}
+
+.client-column {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.email-column {
+  color: #6b7280;
+}
+
+.amount-cell {
+  text-align: right;
+}
+
+.amount-value {
+  font-weight: 700;
+  color: #059669;
+  font-size: 1.1rem;
+}
+
+.due-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.due-date.overdue {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.status-tag {
+  font-weight: 600;
+}
+
+.payment-method {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.paid-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pay-button {
+  background: #059669;
+  border: none;
+  color: var(--text);
+}
+
+.pay-button:hover {
+  background: #047857;
+}
+
+.payment-dialog .p-dialog-header {
+  background: var(--primary);
+  color: var(--text);
+}
+
+.payment-form {
+  padding: 1rem 0;
+}
+
+.field {
+  margin-bottom: 1.5rem;
+}
+
+.field-label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.field-input {
+  width: 100%;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .list-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}

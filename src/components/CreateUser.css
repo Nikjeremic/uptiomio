@@ -1,0 +1,93 @@
+.create-user {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cu-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cu-header-icon {
+  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+  color: #fff;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
+}
+
+.cu-header-text h2 {
+  margin: 0;
+}
+
+.cu-header-text p {
+  margin: 0.25rem 0 0 0;
+  color: #64748b;
+}
+
+.cu-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+}
+
+.cu-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .cu-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cu-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cu-label {
+  font-weight: 600;
+  color: #334155;
+}
+
+.cu-input {
+  width: 100%;
+}
+
+.cu-input-error {
+  border-color: #ef4444 !important;
+}
+
+.cu-error-text {
+  color: #ef4444;
+}
+
+.cu-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cu-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cu-submit {
+  min-width: 200px;
+} 
