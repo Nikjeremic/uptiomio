@@ -6,9 +6,10 @@ import { Dropdown } from 'primereact/dropdown';
 import { Button } from 'primereact/button';
 import { Message } from 'primereact/message';
 import { userAPI } from '../services/api';
-import './CreateUser.css';
+import { useAuth } from './AuthContext';
 
 const CreateUser: React.FC = () => {
+  const { user } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,10 +23,15 @@ const CreateUser: React.FC = () => {
   const [country, setCountry] = useState('');
   const [phone, setPhone] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  const [swiftCode, setSwiftCode] = useState('');
+  const [iban, setIban] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [emailError, setEmailError] = useState('');
+
+  const isAdmin = user?.role === 'admin';
 
   const roleOptions = [
     { label: 'User', value: 'user' },
@@ -35,6 +41,31 @@ const CreateUser: React.FC = () => {
   const validateEmail = (value: string) => {
     const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     return pattern.test(value);
+  };
+
+  const handleChange = (key: string, value: string) => {
+    setError('');
+    setSuccess('');
+    if (key === 'email' && emailError) setEmailError('');
+    
+    switch (key) {
+      case 'name': setName(value); break;
+      case 'email': setEmail(value); break;
+      case 'password': setPassword(value); break;
+      case 'role': setRole(value as 'user' | 'admin'); break;
+      case 'companyName': setCompanyName(value); break;
+      case 'fullName': setFullName(value); break;
+      case 'addressLine': setAddressLine(value); break;
+      case 'city': setCity(value); break;
+      case 'state': setState(value); break;
+      case 'postalCode': setPostalCode(value); break;
+      case 'country': setCountry(value); break;
+      case 'phone': setPhone(value); break;
+      case 'logoUrl': setLogoUrl(value); break;
+      case 'swiftCode': setSwiftCode(value); break;
+      case 'iban': setIban(value); break;
+      case 'cardNumber': setCardNumber(value); break;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,11 +82,33 @@ const CreateUser: React.FC = () => {
     setLoading(true);
 
     try {
-      const profile = { companyName, fullName: fullName || name, addressLine, city, state, postalCode, country, phone, logoUrl };
+      const profile = { 
+        companyName, 
+        fullName: fullName || name, 
+        addressLine, 
+        city, 
+        state, 
+        postalCode, 
+        country, 
+        phone, 
+        logoUrl,
+        // Only include payment info if current user is admin
+        ...(isAdmin && {
+          swiftCode,
+          iban,
+          cardNumber
+        })
+      };
       await userAPI.createUser(name, email, password, role, profile);
       setSuccess('User created successfully. Verification email sent.');
+      
+      // Reset form
       setName(''); setFullName(''); setEmail(''); setPassword(''); setRole('user');
-      setCompanyName(''); setAddressLine(''); setCity(''); setState(''); setPostalCode(''); setCountry(''); setPhone(''); setLogoUrl('');
+      setCompanyName(''); setAddressLine(''); setCity(''); setState(''); 
+      setPostalCode(''); setCountry(''); setPhone(''); setLogoUrl('');
+      if (isAdmin) {
+        setSwiftCode(''); setIban(''); setCardNumber('');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to create user');
     } finally {
@@ -64,105 +117,195 @@ const CreateUser: React.FC = () => {
   };
 
   return (
-    <div className="create-user">
-      <div className="cu-header">
-        <div className="cu-header-icon">
-          <i className="pi pi-user-plus"></i>
-        </div>
-        <div className="cu-header-text">
-          <h2>Create user</h2>
-          <p>Add a new user or administrator</p>
-        </div>
-      </div>
+    <div style={{ padding: '20px' }}>
+      <Card title="Create New User">
+        {error && <Message severity="error" text={error} style={{ marginBottom: '20px' }} />}
+        {success && <Message severity="success" text={success} style={{ marginBottom: '20px' }} />}
 
-      <Card className="cu-card">
-        <form onSubmit={handleSubmit} className="cu-form">
-          <div className="cu-grid">
-            <div className="cu-col">
-              <label htmlFor="name" className="cu-label">Account display name</label>
-              <InputText id="name" value={name} onChange={(e) => setName(e.target.value)} className="cu-input" placeholder="e.g. John Doe" required />
-            </div>
-
-            <div className="cu-col">
-              <label htmlFor="fullName" className="cu-label">Full name (on invoice)</label>
-              <InputText id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} className="cu-input" placeholder="e.g. John Doe" />
-            </div>
-
-            <div className="cu-col">
-              <label htmlFor="email" className="cu-label">Email</label>
-              <InputText 
-                id="email" 
-                type="email" 
-                value={email} 
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (emailError) setEmailError('');
-                }} 
-                className={`cu-input ${emailError ? 'cu-input-error' : ''}`} 
-                placeholder="e.g. john@example.com" 
-                required 
+        <form onSubmit={handleSubmit}>
+          {/* Basic User Information */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div>
+              <label>Account Display Name</label>
+              <InputText
+                value={name}
+                onChange={(e) => handleChange('name', e.target.value)}
+                style={{ width: '100%' }}
+                placeholder="e.g. John Doe"
+                required
               />
-              {emailError && <small className="cu-error-text">{emailError}</small>}
             </div>
-
-            <div className="cu-col">
-              <label htmlFor="password" className="cu-label">Password</label>
-              <Password id="password" value={password} onChange={(e) => setPassword(e.target.value)} className="cu-input" feedback={false} toggleMask placeholder="Enter password" required />
-            </div>
-
-            <div className="cu-col">
-              <label htmlFor="role" className="cu-label">Role</label>
-              <Dropdown id="role" value={role} options={roleOptions} onChange={(e) => setRole(e.value)} className="cu-input" placeholder="Choose role" />
-            </div>
-
-            <div className="cu-col">
-              <label className="cu-label">Company</label>
-              <InputText value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="cu-input" placeholder="Company name" />
-            </div>
-
-            <div className="cu-col">
-              <label className="cu-label">Address</label>
-              <InputText value={addressLine} onChange={(e) => setAddressLine(e.target.value)} className="cu-input" placeholder="Street, number" />
-            </div>
-
-            <div className="cu-col">
-              <label className="cu-label">City</label>
-              <InputText value={city} onChange={(e) => setCity(e.target.value)} className="cu-input" placeholder="City" />
-            </div>
-
-            <div className="cu-col">
-              <label className="cu-label">State/Province</label>
-              <InputText value={state} onChange={(e) => setState(e.target.value)} className="cu-input" placeholder="State" />
-            </div>
-
-            <div className="cu-col">
-              <label className="cu-label">Postal code</label>
-              <InputText value={postalCode} onChange={(e) => setPostalCode(e.target.value)} className="cu-input" placeholder="ZIP/Postal" />
-            </div>
-
-            <div className="cu-col">
-              <label className="cu-label">Country</label>
-              <InputText value={country} onChange={(e) => setCountry(e.target.value)} className="cu-input" placeholder="Country" />
-            </div>
-
-            <div className="cu-col">
-              <label className="cu-label">Phone</label>
-              <InputText value={phone} onChange={(e) => setPhone(e.target.value)} className="cu-input" placeholder="+1 ..." />
-            </div>
-
-            <div className="cu-col">
-              <label className="cu-label">Logo URL</label>
-              <InputText value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} className="cu-input" placeholder="https://..." />
+            <div>
+              <label>Full Name (on invoice)</label>
+              <InputText
+                value={fullName}
+                onChange={(e) => handleChange('fullName', e.target.value)}
+                style={{ width: '100%' }}
+                placeholder="e.g. John Doe"
+              />
             </div>
           </div>
 
-          <div className="cu-messages">
-            {error && <Message severity="error" text={error} className="cu-message" />}
-            {success && <Message severity="success" text={success} className="cu-message" />}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div>
+              <label>Email</label>
+              <InputText
+                type="email"
+                value={email}
+                onChange={(e) => handleChange('email', e.target.value)}
+                style={{ width: '100%' }}
+                placeholder="e.g. john@example.com"
+                required
+              />
+              {emailError && <small style={{ color: 'red', fontSize: '12px' }}>{emailError}</small>}
+            </div>
+            <div>
+              <label>Password</label>
+              <Password
+                value={password}
+                onChange={(e) => handleChange('password', e.target.value)}
+                style={{ width: '100%' }}
+                feedback={false}
+                toggleMask
+                placeholder="Enter password"
+                required
+              />
+            </div>
           </div>
 
-          <div className="cu-actions">
-            <Button type="submit" label="Create user" icon="pi pi-check" className="cu-submit" loading={loading} />
+          <div style={{ marginBottom: '20px' }}>
+            <label>Role</label>
+            <Dropdown
+              value={role}
+              options={roleOptions}
+              onChange={(e) => handleChange('role', e.value)}
+              style={{ width: '100%' }}
+              placeholder="Choose role"
+            />
+          </div>
+
+          {/* Company Information */}
+          <div style={{ marginBottom: '20px' }}>
+            <label>Company Name</label>
+            <InputText
+              value={companyName}
+              onChange={(e) => handleChange('companyName', e.target.value)}
+              style={{ width: '100%' }}
+              placeholder="Company name"
+            />
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label>Address Line</label>
+            <InputText
+              value={addressLine}
+              onChange={(e) => handleChange('addressLine', e.target.value)}
+              style={{ width: '100%' }}
+              placeholder="Street, number"
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div>
+              <label>City</label>
+              <InputText
+                value={city}
+                onChange={(e) => handleChange('city', e.target.value)}
+                style={{ width: '100%' }}
+                placeholder="City"
+              />
+            </div>
+            <div>
+              <label>State</label>
+              <InputText
+                value={state}
+                onChange={(e) => handleChange('state', e.target.value)}
+                style={{ width: '100%' }}
+                placeholder="State"
+              />
+            </div>
+            <div>
+              <label>Postal Code</label>
+              <InputText
+                value={postalCode}
+                onChange={(e) => handleChange('postalCode', e.target.value)}
+                style={{ width: '100%' }}
+                placeholder="ZIP/Postal"
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div>
+              <label>Country</label>
+              <InputText
+                value={country}
+                onChange={(e) => handleChange('country', e.target.value)}
+                style={{ width: '100%' }}
+                placeholder="Country"
+              />
+            </div>
+            <div>
+              <label>Phone</label>
+              <InputText
+                value={phone}
+                onChange={(e) => handleChange('phone', e.target.value)}
+                style={{ width: '100%' }}
+                placeholder="+1 ..."
+              />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label>Logo URL</label>
+            <InputText
+              value={logoUrl}
+              onChange={(e) => handleChange('logoUrl', e.target.value)}
+              style={{ width: '100%' }}
+              placeholder="https://..."
+            />
+          </div>
+
+          {/* Payment Information - ONLY FOR ADMIN USERS */}
+          {isAdmin && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+              <div>
+                <label>Swift Code</label>
+                <InputText
+                  value={swiftCode}
+                  onChange={(e) => handleChange('swiftCode', e.target.value)}
+                  style={{ width: '100%' }}
+                  placeholder="SWIFT code for international transfers"
+                />
+              </div>
+              <div>
+                <label>IBAN</label>
+                <InputText
+                  value={iban}
+                  onChange={(e) => handleChange('iban', e.target.value)}
+                  style={{ width: '100%' }}
+                  placeholder="International Bank Account Number"
+                />
+              </div>
+              <div>
+                <label>Card Number</label>
+                <InputText
+                  value={cardNumber}
+                  onChange={(e) => handleChange('cardNumber', e.target.value)}
+                  style={{ width: '100%' }}
+                  placeholder="Card number for payments"
+                />
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button 
+              label="Create User" 
+              icon="pi pi-user-plus"
+              loading={loading} 
+              onClick={handleSubmit}
+            />
           </div>
         </form>
       </Card>
@@ -170,4 +313,4 @@ const CreateUser: React.FC = () => {
   );
 };
 
-export default CreateUser; 
+export default CreateUser;

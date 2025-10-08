@@ -3,10 +3,12 @@ export interface User {
   email: string;
   name: string;
   role: 'user' | 'admin';
+  isVerified?: boolean;
 }
 
 export interface UserProfile {
-  userId: string;
+  _id?: string;
+  userId?: string;
   companyName: string;
   fullName: string;
   addressLine: string;
@@ -15,9 +17,13 @@ export interface UserProfile {
   postalCode: string;
   country: string;
   phone: string;
-  logoUrl: string;
-  createdAt: string;
-  updatedAt: string;
+  logoUrl?: string;
+  signatureUrl?: string;
+  swiftCode?: string;
+  iban?: string;
+  cardNumber?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface InvoiceItem {
@@ -27,39 +33,40 @@ export interface InvoiceItem {
 }
 
 export interface Invoice {
-  _id: string;
-  // Issuer
+  _id?: string;
+  invoiceNumber?: number;
+  invoiceNumberStr?: string;
   issuerName: string;
   issuerCompany?: string;
   issuerAddress?: string;
   issuerCountry?: string;
   issuerPhone?: string;
   issuerLogoUrl?: string;
-  // Client
+  issuerSignatureUrl?: string;
+  issuerSwiftCode?: string;
+  issuerIban?: string;
+  issuerCardNumber?: string;
   clientName: string;
   clientEmail: string;
   clientCompany?: string;
   clientAddress?: string;
   clientCountry?: string;
   clientPhone?: string;
-  // Items & totals
   items: InvoiceItem[];
   amount: number;
-  currency: 'USD';
+  currency?: string;
   notes?: string;
   description?: string;
   dueDate: string;
-  isPaid: boolean;
-  paymentMethod?: 'Payoneer' | 'Western Union' | 'Zelle' | 'Credit Card' | 'Authorize.net' | 'Paypal';
+  isPaid?: boolean;
   paidAt?: string;
-  // Identification
-  invoiceNumber?: number;
-  invoiceNumberStr?: string;
-  createdBy: {
-    _id: string;
-    name: string;
-    email: string;
-  } | string;
+  paymentMethod?: string;
+  reminderEnabled?: boolean;
+  reminderIntervalDays?: number;
+  reminderHour?: number;
+  reminderMinute?: number;
+  lastReminderAt?: string;
+  createdBy: string;
   createdAt: string;
 }
 

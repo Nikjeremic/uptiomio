@@ -118,3 +118,54 @@ Za produkciju, preporučuje se:
 - Za produkciju je potrebno dodati dodatne sigurnosne mere
 - Preporučuje se korišćenje HTTPS-a
 - Implementirati backup strategiju za bazu podataka
+
+---
+
+## 📱 Mobilna Optimizacija
+
+Aplikacija je **potpuno optimizovana za mobilne uređaje**! 
+
+### Ključne Karakteristike:
+- ✅ Responzivni dizajn za sve veličine ekrana
+- ✅ Touch-friendly dugmići (44x44px minimum)
+- ✅ Slide-in sidebar menu na mobilnom
+- ✅ Horizontalno scrollovanje tabela
+- ✅ Optimizovane forme za mobilne uređaje
+- ✅ Nema zoom-a pri kliku na input polja (iOS)
+- ✅ Smooth animacije i touch feedback
+
+### Testiranje na Mobilnom:
+
+**Chrome DevTools:**
+```bash
+1. npm start
+2. Pritisni F12
+3. Toggle device toolbar (Ctrl+Shift+M)
+4. Izaberi mobilni uređaj
+```
+
+**Pravi Mobilni Uređaj:**
+```bash
+1. npm start
+2. Nađi IP: hostname -I
+3. Na telefonu: http://[IP]:3000
+```
+
+### Dokumentacija:
+- 📖 [MOBILE_OPTIMIZATION.md](./MOBILE_OPTIMIZATION.md) - Detaljne izmene
+- 📖 [MOBILE_TESTING_GUIDE.md](./MOBILE_TESTING_GUIDE.md) - Vodič za testiranje
+- 📖 [MOBILE_CHANGES_SUMMARY.md](./MOBILE_CHANGES_SUMMARY.md) - Brzi pregled
+- 📖 [BRZI_VODIC_MOBILNA.md](./BRZI_VODIC_MOBILNA.md) - Brzi vodič
+
+### Browser Kompatibilnost:
+- ✅ Chrome Mobile 90+
+- ✅ Safari iOS 13+
+- ✅ Firefox Mobile 88+
+- ✅ Samsung Internet 14+
+
+### Responsive Breakpoint-i:
+- Desktop: > 768px
+- Tablet/Mobile: ≤ 768px
+- Small Mobile: ≤ 480px
+
+---

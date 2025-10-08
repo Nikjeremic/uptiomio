@@ -4,6 +4,7 @@ import { Button } from 'primereact/button';
 import { Message } from 'primereact/message';
 import { invoiceAPI } from '../services/api';
 import { Invoice } from '../types';
+import { useAuth } from './AuthContext';
 import UptimioLogo from '../Uptimio Logo.png';
 import SignatureImg from '../Jeremic Nikola Signature.png';
 
@@ -24,6 +25,7 @@ const a4Styles: React.CSSProperties = {
 const InvoiceView: React.FC = () => {
   const query = useQuery();
   const invoiceId = query.get('invoiceId');
+  const { user } = useAuth();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -58,6 +60,7 @@ const InvoiceView: React.FC = () => {
   }, []);
 
   const total = invoice?.amount || 0;
+  const isAdmin = user?.role === 'admin';
 
   return (
     <div className="invoice-view" style={{ padding: 24 }}>
@@ -80,6 +83,15 @@ const InvoiceView: React.FC = () => {
         .col-qty { width: 10%; text-align: right; }
         .col-unit { width: 15%; text-align: right; }
         .col-amount { width: 20%; text-align: right; font-weight: 600; }
+        .payment-info { margin-top: 12px; padding: 12px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px; }
+        .payment-info h4 { margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #374151; }
+        .payment-details { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+        .payment-item { display: flex; flex-direction: column; }
+        .payment-label { font-size: 11px; font-weight: 600; color: #6b7280; margin-bottom: 2px; }
+        .payment-value { font-size: 12px; font-weight: 500; color: #111827; word-break: break-all; }
+        @media (max-width: 768px) {
+          .payment-details { grid-template-columns: 1fr; gap: 8px; }
+        }
       `}</style>
       <Card>
         <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -150,6 +162,33 @@ const InvoiceView: React.FC = () => {
             <div style={{ marginTop: 16 }}>
               <div style={{ fontWeight: 600 }}>Due date: <span style={{ fontWeight: 700 }}>{new Date(invoice.dueDate).toLocaleDateString('en-US')}</span></div>
             </div>
+
+            {/* Payment Information - ONLY FOR ADMIN USERS */}
+            {isAdmin && ((invoice as any).issuerSwiftCode || (invoice as any).issuerIban || (invoice as any).issuerCardNumber) && (
+              <div className="payment-info">
+                <h4>Payment Information</h4>
+                <div className="payment-details">
+                  {(invoice as any).issuerSwiftCode && (
+                    <div className="payment-item">
+                      <div className="payment-label">SWIFT Code</div>
+                      <div className="payment-value">{(invoice as any).issuerSwiftCode}</div>
+                    </div>
+                  )}
+                  {(invoice as any).issuerIban && (
+                    <div className="payment-item">
+                      <div className="payment-label">IBAN</div>
+                      <div className="payment-value">{(invoice as any).issuerIban}</div>
+                    </div>
+                  )}
+                  {(invoice as any).issuerCardNumber && (
+                    <div className="payment-item">
+                      <div className="payment-label">Card Number</div>
+                      <div className="payment-value">{(invoice as any).issuerCardNumber}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Payment method - inline format */}
             {(invoice as any).paymentMethod && (

@@ -1,0 +1,400 @@
+import React, { useState, useEffect } from 'react';
+import { Card } from 'primereact/card';
+import { InputText } from 'primereact/inputtext';
+import { Button } from 'primereact/button';
+import { Dropdown } from 'primereact/dropdown';
+import { Calendar } from 'primereact/calendar';
+import { InputTextarea } from 'primereact/inputtextarea';
+import { InputSwitch } from 'primereact/inputswitch';
+import { Message } from 'primereact/message';
+import { invoiceAPI, userAPI, profileAPI } from '../services/api';
+import './CreateInvoice.css';
+
+interface ItemRow {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+interface UserOption { label: string; value: string; email: string; }
+
+const CreateInvoice: React.FC = () => {
+  const [clientUserId, setClientUserId] = useState<string | null>(null);
+  const [userOptions, setUserOptions] = useState<UserOption[]>([]);
+  const [clientName, setClientName] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
+  const [clientCompany, setClientCompany] = useState('');
+  const [clientAddress, setClientAddress] = useState('');
+  const [clientCountry, setClientCountry] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
+  const [items, setItems] = useState<ItemRow[]>([{ description: '', quantity: 1, unitPrice: 0 }]);
+  const [notes, setNotes] = useState('');
+  const [description, setDescription] = useState('');
+  const [dueDate, setDueDate] = useState<Date | null>(null);
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderTime, setReminderTime] = useState<Date | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await userAPI.getAllUsers();
+        const opts = data.map((u: any) => ({ label: `${u.name} (${u.email})`, value: u._id || u.id, email: u.email }));
+        setUserOptions(opts);
+      } catch (e) {
+        // ignore silently
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      if (!clientUserId || userOptions.length === 0) return;
+      try {
+        const { data } = await profileAPI.getByUserId(clientUserId);
+        setClientName(data.fullName || '');
+        setClientEmail(userOptions.find((o) => o.value === clientUserId)?.email || '');
+        setClientCompany(data.companyName || '');
+        setClientAddress(data.addressLine || '');
+        setClientCountry(data.country || '');
+        setClientPhone(data.phone || '');
+      } catch (e) {
+        // if missing profile, keep manual entry
+      }
+    })();
+  }, [clientUserId, userOptions]);
+
+  const addItem = () => setItems((prev) => [...prev, { description: '', quantity: 1, unitPrice: 0 }]);
+  const removeItem = (idx: number) => setItems((prev) => prev.filter((_, i) => i !== idx));
+  const setItem = (idx: number, key: keyof ItemRow, value: any) => setItems((prev) => prev.map((it, i) => i === idx ? { ...it, [key]: value } : it));
+
+  const total = items.reduce((sum, it) => sum + ((it.quantity || 0) * (it.unitPrice || 0)), 0);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientName || !clientEmail || !dueDate) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      // Get issuer profile data
+      const { data: issuerProfile } = await profileAPI.get();
+      
+      const invoiceData = {
+        // Issuer data from profile
+        issuerName: issuerProfile.fullName || 'Uptimio',
+        issuerCompany: issuerProfile.companyName || 'Uptimio',
+        issuerAddress: issuerProfile.addressLine || '',
+        issuerCountry: issuerProfile.country || '',
+        issuerPhone: issuerProfile.phone || '',
+        issuerLogoUrl: issuerProfile.logoUrl || '',
+        issuerSignatureUrl: issuerProfile.signatureUrl || '',
+        issuerSwiftCode: issuerProfile.swiftCode || '',
+        issuerIban: issuerProfile.iban || '',
+        issuerCardNumber: issuerProfile.cardNumber || '',
+
+        // Client data
+        clientName,
+        clientEmail,
+        clientCompany,
+        clientAddress,
+        clientCountry,
+        clientPhone,
+
+        // Invoice data
+        items,
+        amount: total,
+        currency: 'USD',
+        notes,
+        description,
+        dueDate: dueDate.toISOString(),
+        reminderEnabled,
+        reminderHour: reminderTime ? reminderTime.getHours() : null,
+        reminderMinute: reminderTime ? reminderTime.getMinutes() : null
+      };
+
+      await invoiceAPI.createInvoice(invoiceData);
+      setSuccess('Invoice created successfully!');
+      
+      // Reset form
+      setClientUserId(null);
+      setClientName('');
+      setClientEmail('');
+      setClientCompany('');
+      setClientAddress('');
+      setClientCountry('');
+      setClientPhone('');
+      setItems([{ description: '', quantity: 1, unitPrice: 0 }]);
+      setNotes('');
+      setDescription('');
+      setDueDate(null);
+      setReminderEnabled(false);
+      setReminderTime(null);
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to create invoice');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="create-invoice-container">
+      <Card title="Create New Invoice" className="invoice-card">
+        <form onSubmit={handleSubmit} className="invoice-form">
+          <div className="form-section">
+            <h3>Client Information</h3>
+            
+            <div className="form-group">
+              <label htmlFor="clientUserId" className="form-label">
+                <i className="pi pi-user"></i>
+                Select Client (Optional)
+              </label>
+              <Dropdown
+                id="clientUserId"
+                value={clientUserId}
+                options={userOptions}
+                onChange={(e) => setClientUserId(e.value)}
+                className="form-input"
+                placeholder="Choose a client to auto-fill data"
+                showClear
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="clientName" className="form-label required">
+                <i className="pi pi-user"></i>
+                Client Name
+              </label>
+              <InputText
+                id="clientName"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                className="form-input"
+                placeholder="Enter client name"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="clientEmail" className="form-label required">
+                <i className="pi pi-envelope"></i>
+                Client Email
+              </label>
+              <InputText
+                id="clientEmail"
+                type="email"
+                value={clientEmail}
+                onChange={(e) => setClientEmail(e.target.value)}
+                className="form-input"
+                placeholder="Enter client email"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="clientCompany" className="form-label">
+                <i className="pi pi-building"></i>
+                Company
+              </label>
+              <InputText
+                id="clientCompany"
+                value={clientCompany}
+                onChange={(e) => setClientCompany(e.target.value)}
+                className="form-input"
+                placeholder="Enter company name"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="clientAddress" className="form-label">
+                <i className="pi pi-map-marker"></i>
+                Address
+              </label>
+              <InputText
+                id="clientAddress"
+                value={clientAddress}
+                onChange={(e) => setClientAddress(e.target.value)}
+                className="form-input"
+                placeholder="Enter address"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="clientCountry" className="form-label">
+                <i className="pi pi-flag"></i>
+                Country
+              </label>
+              <InputText
+                id="clientCountry"
+                value={clientCountry}
+                onChange={(e) => setClientCountry(e.target.value)}
+                className="form-input"
+                placeholder="Enter country"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="clientPhone" className="form-label">
+                <i className="pi pi-phone"></i>
+                Phone
+              </label>
+              <InputText
+                id="clientPhone"
+                value={clientPhone}
+                onChange={(e) => setClientPhone(e.target.value)}
+                className="form-input"
+                placeholder="Enter phone number"
+              />
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h3>Invoice Details</h3>
+            
+            <div className="form-group">
+              <label htmlFor="description" className="form-label">
+                <i className="pi pi-file-edit"></i>
+                Description
+              </label>
+              <InputText
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="form-input"
+                placeholder="Enter invoice description"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="dueDate" className="form-label required">
+                <i className="pi pi-calendar"></i>
+                Due Date
+              </label>
+              <Calendar
+                id="dueDate"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.value as Date)}
+                className="form-input"
+                placeholder="Select due date"
+                showIcon
+                required
+              />
+            </div>
+
+            <div className="items-section">
+              <div className="items-header">
+                <h4>Items</h4>
+                <Button
+                  type="button"
+                  label="Add Item"
+                  icon="pi pi-plus"
+                  onClick={addItem}
+                  size="small"
+                  className="add-item-btn"
+                />
+              </div>
+
+              {items.map((item, idx) => (
+                <div key={idx} className="item-row">
+                  <div className="item-description">
+                    <InputText
+                      value={item.description}
+                      onChange={(e) => setItem(idx, 'description', e.target.value)}
+                      placeholder="Item description"
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="item-quantity">
+                    <InputText
+                      type="number"
+                      value={item.quantity.toString()}
+                      onChange={(e) => setItem(idx, 'quantity', parseInt(e.target.value) || 0)}
+                      placeholder="Qty"
+                      className="form-input"
+                      min="0"
+                    />
+                  </div>
+                  <div className="item-price">
+                    <InputText
+                      type="number"
+                      value={item.unitPrice.toString()}
+                      onChange={(e) => setItem(idx, 'unitPrice', parseFloat(e.target.value) || 0)}
+                      placeholder="Price"
+                      className="form-input"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div className="item-total">
+                    <span>${((item.quantity || 0) * (item.unitPrice || 0)).toFixed(2)}</span>
+                  </div>
+                  <div className="item-actions">
+                    <Button
+                      type="button"
+                      icon="pi pi-trash"
+                      severity="danger"
+                      text
+                      onClick={() => removeItem(idx)}
+                      disabled={items.length === 1}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="form-group full-width">
+              <label htmlFor="notes" className="form-label">
+                <i className="pi pi-file-edit"></i>
+                Payment notes, bank details, etc.
+              </label>
+              <InputTextarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="form-input"
+                placeholder="Payment notes, bank details, etc." rows={3} />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Enable daily reminders</label>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <InputSwitch checked={reminderEnabled} onChange={(e) => setReminderEnabled(!!e.value)} />
+                <span style={{ color: '#6b7280' }}>Send every day at</span>
+                <Calendar value={reminderTime} onChange={(e) => setReminderTime(e.value as Date)} timeOnly hourFormat="24" showIcon disabled={!reminderEnabled} />
+              </div>
+            </div>
+          </div>
+
+          {error && (
+            <Message severity="error" text={error} className="form-message" />
+          )}
+
+          {success && (
+            <Message severity="success" text={success} className="form-message" />
+          )}
+
+          <div className="form-actions" style={{ justifyContent: 'space-between' }}>
+            <div className="total">Total: {total.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</div>
+            <Button
+              type="submit"
+              label="Create invoice"
+              icon="pi pi-plus"
+              className="submit-button"
+              loading={loading}
+              size="large"
+            />
+          </div>
+        </form>
+      </Card>
+    </div>
+  );
+};
+
+export default CreateInvoice;

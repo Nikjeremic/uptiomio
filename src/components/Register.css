@@ -1,59 +1,47 @@
+/* Register Styles - Mobile Optimized */
 .register-container {
   min-height: 100vh;
   background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 24px;
 }
 
 .register-card {
   width: 100%;
   max-width: 480px;
-  text-align: center;
-}
-
-.register-header {
-  margin-bottom: 2rem;
-}
-
-.register-logo {
-  margin-bottom: 1rem;
-}
-
-.register-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0 0 0.5rem 0;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-
-.register-subtitle {
-  color: rgba(255,255,255,0.9);
-  font-size: 1.1rem;
-  margin: 0;
-}
-
-.register-form-card {
-  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-  border-radius: 16px;
-  border: none;
 }
 
 .register-form {
-  padding: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.register-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.register-subtitle {
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 2rem;
 }
 
 .field {
-  margin-bottom: 1.5rem;
-  text-align: left;
+  margin-bottom: 1.25rem;
 }
 
 .field-label {
   display: block;
   font-weight: 600;
-  color: #374151;
+  color: var(--text);
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
 }
@@ -61,28 +49,162 @@
 .field-input {
   width: 100%;
   padding: 0.75rem;
-  border: 2px solid #e5e7eb;
+  border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 1rem;
-  transition: all 0.2s;
+  transition: border-color 0.2s;
+  min-height: 44px;
 }
 
 .field-input:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .register-button {
   width: 100%;
   padding: 0.875rem;
-  font-size: 1rem;
   font-weight: 600;
   border-radius: 8px;
-  background: var(--bg);
+  background: var(--primary);
   border: none;
-  margin-top: 1rem;
+  color: white;
+  min-height: 44px;
+  transition: all 0.3s ease;
+}
+
+.register-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.register-button:active {
+  transform: translateY(0);
 }
 
 .error-message {
   margin-bottom: 1rem;
+}
+
+.success-message {
+  margin-bottom: 1rem;
+}
+
+/* PrimeReact Password field */
+.p-password {
+  width: 100% !important;
+}
+
+.p-password .p-inputtext {
+  width: 100% !important;
+  display: block;
+  min-height: 44px;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .register-container {
+    padding: 16px;
+  }
+  
+  .register-card {
+    max-width: 100%;
+  }
+  
+  .register-form {
+    padding: 1.5rem;
+  }
+  
+  .register-title {
+    font-size: 1.5rem;
+  }
+  
+  .register-subtitle {
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .field {
+    margin-bottom: 1rem;
+  }
+  
+  .field-label {
+    font-size: 0.875rem;
+  }
+  
+  .field-input {
+    font-size: 0.95rem;
+    padding: 0.65rem;
+  }
+  
+  .register-button {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-container {
+    padding: 12px;
+  }
+  
+  .register-form {
+    padding: 1.25rem;
+  }
+  
+  .register-title {
+    font-size: 1.3rem;
+  }
+  
+  .register-subtitle {
+    font-size: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+  
+  .field-label {
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+  }
+  
+  .field-input {
+    font-size: 0.9rem;
+    padding: 0.6rem;
+  }
+  
+  .register-button {
+    padding: 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Touch-friendly interactions */
+@media (hover: none) and (pointer: coarse) {
+  .register-button:hover {
+    transform: none;
+  }
+  
+  .register-button:active {
+    transform: scale(0.98);
+  }
+  
+  .field-input,
+  .p-inputtext,
+  .p-password .p-inputtext {
+    min-height: 48px;
+  }
+}
+
+/* Landscape mode on mobile */
+@media (max-height: 600px) and (max-width: 768px) {
+  .register-container {
+    align-items: flex-start;
+    padding-top: 1rem;
+  }
+  
+  .register-subtitle {
+    margin-bottom: 1rem;
+  }
+  
+  .field {
+    margin-bottom: 0.75rem;
+  }
 }

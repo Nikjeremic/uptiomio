@@ -1,3 +1,4 @@
+/* Create Invoice Styles - Mobile Optimized */
 .create-invoice-container {
   padding: 0;
 }
@@ -26,6 +27,7 @@
   justify-content: center;
   color: white;
   font-size: 1.5rem;
+  flex-shrink: 0;
 }
 
 .header-text h2 {
@@ -78,6 +80,7 @@
   border-radius: 8px;
   font-size: 1rem;
   transition: all 0.2s;
+  min-height: 44px;
 }
 
 .form-input:focus {
@@ -92,6 +95,7 @@
 .form-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 1rem;
   padding-top: 1rem;
   border-top: 2px solid #f3f4f6;
 }
@@ -103,6 +107,8 @@
   padding: 0.875rem 2rem;
   font-weight: 600;
   border-radius: 8px;
+  min-height: 44px;
+  transition: all 0.3s ease;
 }
 
 .submit-button:hover {
@@ -110,18 +116,133 @@
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
+.submit-button:active {
+  transform: translateY(0);
+}
+
+/* Mobile Optimizations */
 @media (max-width: 768px) {
   .form-grid {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
   }
 
   .card-header {
     flex-direction: column;
     text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .header-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.25rem;
+  }
+  
+  .header-text h2 {
+    font-size: 1.3rem;
   }
 
   .form-actions {
-    justify-content: center;
+    justify-content: stretch;
+    flex-direction: column;
+  }
+  
+  .submit-button {
+    width: 100%;
+    padding: 0.875rem 1rem;
+  }
+  
+  .form-label {
+    font-size: 0.875rem;
+  }
+  
+  .form-input {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-header {
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+  
+  .header-icon {
+    width: 45px;
+    height: 45px;
+    font-size: 1.1rem;
+    border-radius: 10px;
+  }
+  
+  .header-text h2 {
+    font-size: 1.2rem;
+  }
+  
+  .header-text p {
+    font-size: 0.85rem;
+  }
+  
+  .form-grid {
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  
+  .form-label {
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+  }
+  
+  .form-input {
+    padding: 0.65rem;
+    font-size: 0.9rem;
+  }
+  
+  .form-actions {
+    padding-top: 0.75rem;
+  }
+  
+  .submit-button {
+    padding: 0.8rem 1rem;
+    font-size: 0.95rem;
+  }
+}
+
+/* Touch-friendly form elements */
+@media (hover: none) and (pointer: coarse) {
+  .form-input,
+  .p-inputtext,
+  .p-calendar,
+  .p-dropdown,
+  .p-inputnumber,
+  .p-inputtextarea {
+    min-height: 48px;
+  }
+  
+  .submit-button:hover {
+    transform: none;
+  }
+  
+  .submit-button:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Improved form input styling for mobile */
+.p-inputtext,
+.p-calendar .p-inputtext,
+.p-dropdown,
+.p-inputnumber-input,
+.p-inputtextarea {
+  width: 100%;
+  min-height: 44px;
+}
+
+/* Better spacing for form messages on mobile */
+@media (max-width: 768px) {
+  .p-message {
+    font-size: 0.9rem;
+    padding: 0.75rem;
   }
 }

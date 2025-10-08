@@ -1,3 +1,10 @@
+/* Global Styles - Mobile Optimized */
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -5,9 +12,224 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+html {
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* Touch-friendly button sizes */
+button,
+.p-button {
+  min-height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Improve input field sizing on mobile */
+input,
+textarea,
+select,
+.p-inputtext,
+.p-dropdown,
+.p-calendar input {
+  min-height: 44px;
+  font-size: 16px; /* Prevents iOS zoom */
+}
+
+/* Better text selection on mobile */
+::selection {
+  background-color: rgba(37, 99, 235, 0.3);
+  color: inherit;
+}
+
+/* Smooth scrolling for touch devices */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Remove focus outline on touch devices, keep for keyboard navigation */
+@media (hover: none) and (pointer: coarse) {
+  button:focus,
+  a:focus,
+  input:focus {
+    outline: none;
+  }
+}
+
+/* PrimeReact Global Mobile Optimizations */
+.p-dialog {
+  max-width: 95vw !important;
+}
+
+.p-datatable {
+  font-size: 0.95rem;
+}
+
+.p-button {
+  transition: all 0.3s ease;
+}
+
+/* Mobile-specific PrimeReact adjustments */
+@media (max-width: 768px) {
+  .p-dialog {
+    width: 95vw !important;
+    margin: 0.5rem;
+  }
+  
+  .p-datatable {
+    font-size: 0.9rem;
+  }
+  
+  .p-datatable .p-datatable-thead > tr > th {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+  }
+  
+  .p-datatable .p-datatable-tbody > tr > td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .p-button {
+    font-size: 0.95rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .p-inputtext {
+    padding: 0.65rem 0.75rem;
+  }
+  
+  .p-dropdown {
+    font-size: 0.95rem;
+  }
+  
+  .p-message {
+    font-size: 0.9rem;
+    padding: 0.75rem;
+  }
+  
+  .p-card {
+    font-size: 0.95rem;
+  }
+  
+  .p-card .p-card-title {
+    font-size: 1.25rem;
+  }
+  
+  .p-card .p-card-content {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .p-datatable {
+    font-size: 0.85rem;
+  }
+  
+  .p-datatable .p-datatable-thead > tr > th {
+    padding: 0.6rem 0.4rem;
+    font-size: 0.8rem;
+  }
+  
+  .p-datatable .p-datatable-tbody > tr > td {
+    padding: 0.6rem 0.4rem;
+    font-size: 0.85rem;
+  }
+  
+  .p-button {
+    font-size: 0.9rem;
+    padding: 0.45rem 0.65rem;
+  }
+  
+  .p-inputtext {
+    padding: 0.6rem 0.7rem;
+    font-size: 0.95rem;
+  }
+  
+  .p-message {
+    font-size: 0.85rem;
+    padding: 0.65rem;
+  }
+  
+  .p-card .p-card-title {
+    font-size: 1.1rem;
+  }
+  
+  .p-card .p-card-content {
+    padding: 0.75rem;
+  }
+}
+
+/* Prevent text size adjustment on orientation change */
+html {
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Improve touch scrolling performance */
+body {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+}
+
+/* Better focus states for accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.5);
+  outline-offset: 2px;
+}
+
+/* Hide scrollbar on mobile while keeping functionality */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+  }
+}
+
+/* Loading states */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Ensure images are responsive */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Better font rendering on mobile */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    line-height: 1.3;
+  }
 }

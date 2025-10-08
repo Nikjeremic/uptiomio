@@ -17,19 +17,6 @@ const AppContent: React.FC = () => {
     return <InvoiceView />;
   }
 
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="loading-content">
-          <div className="loading-spinner">
-            <i className="pi pi-spin pi-spinner text-4xl text-primary"></i>
-          </div>
-          <h3 className="loading-text">Loading</h3>
-          <p className="loading-subtitle">Please wait</p>
-        </div>
-      </div>
-    );
-  }
 
   if (user) {
     return <Dashboard />;

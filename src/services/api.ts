@@ -58,7 +58,9 @@ export const userAPI = {
   getAllUsers: () => api.get('/users'),
   createUser: (name: string, email: string, password: string, role: 'user' | 'admin', profile?: any) =>
     api.post('/users', { name, email, password, role, profile }),
-  deleteUser: (id: string) => api.delete(`/users/${id}`)
+  deleteUser: (id: string) => api.delete(`/users/${id}`),
+  resetPassword: (id: string, customPassword?: string) => 
+    api.post(`/users/${id}/reset-password`, { customPassword })
 };
 
 export default api;

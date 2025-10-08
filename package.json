@@ -35,7 +35,8 @@
     "eject": "react-scripts eject",
     "server": "node server.js",
     "dev": "concurrently \"npm run server\" \"npm start\"",
-    "seed": "node seed.js"
+    "seed": "node seed.js",
+    "start:prod": "NODE_ENV=production node server.js"
   },
   "eslintConfig": {
     "extends": [

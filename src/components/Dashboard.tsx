@@ -1,130 +1,85 @@
-import React, { useState } from 'react';
-import { TabView, TabPanel } from 'primereact/tabview';
+import React, { useState, useEffect } from 'react';
 import { Button } from 'primereact/button';
-import { Avatar } from 'primereact/avatar';
-import { Badge } from 'primereact/badge';
 import { useAuth } from './AuthContext';
+import Sidebar from './Sidebar';
 import InvoiceList from './InvoiceList';
 import CreateInvoice from './CreateInvoice';
 import CreateUser from './CreateUser';
 import Profile from './Profile';
 import AdminProfiles from './AdminProfiles';
 import './Dashboard.css';
-import logo from '../Uptimio Logo.png';
 
 const Dashboard: React.FC = () => {
-  const { user, logout } = useAuth();
-  const [activeIndex, setActiveIndex] = useState(0);
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState(0);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const isAdmin = user?.role === 'admin';
 
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth <= 768;
+      const tablet = window.innerWidth <= 1024 && window.innerWidth > 768;
+      setIsMobile(mobile);
+      
+      // Auto-collapse sidebar on mobile, keep user preference on tablet/desktop
+      if (mobile) {
+        setIsSidebarCollapsed(false);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 0:
+        return <InvoiceList isAdmin={isAdmin} />;
+      case 1:
+        return isAdmin ? <CreateInvoice /> : null;
+      case 2:
+        return isAdmin ? <AdminProfiles /> : null;
+      case 3:
+        return isAdmin ? <CreateUser /> : null;
+      case 4:
+        return <Profile />;
+      default:
+        return <InvoiceList isAdmin={isAdmin} />;
+    }
+  };
+
   return (
     <div className="dashboard-container">
-      {/* Header */}
-      <div className="dashboard-header">
-        <div className="header-content">
-          <div className="header-left">
-            <div className="logo-section">
-              <img src={logo} alt="Uptimio" className="app-logo" />
-            </div>
-          </div>
-          
-          <div className="header-right">
-            <div className="user-info">
-              <Avatar 
-                icon="pi pi-user" 
-                className="user-avatar"
-                size="large"
-              />
-              <div className="user-details">
-                <span className="user-name">{user?.name}</span>
-                <Badge 
-                  value={user?.role === 'admin' ? 'Administrator' : 'User'} 
-                  severity={user?.role === 'admin' ? 'info' : 'success'}
-                  className="role-badge"
-                />
-              </div>
-            </div>
+      <Sidebar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        isMobileOpen={isMobileOpen}
+        onMobileClose={() => setIsMobileOpen(false)}
+      />
+      
+      <div className={`main-content ${isSidebarCollapsed && !isMobile ? 'sidebar-collapsed' : ''}`}>
+        {/* Mobile Menu Button */}
+        {isMobile && (
+          <div className="mobile-header">
             <Button
-              label="Sign out"
-              icon="pi pi-sign-out"
-              severity="secondary"
-              className="logout-button"
-              onClick={logout}
+              icon="pi pi-bars"
+              className="mobile-menu-button"
+              onClick={() => setIsMobileOpen(true)}
+              text
+              rounded
             />
+            <h2 className="mobile-title">Uptimio</h2>
           </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="dashboard-content">
+        )}
+        
         <div className="content-wrapper">
-          <TabView 
-            activeIndex={activeIndex} 
-            onTabChange={(e) => setActiveIndex(e.index)}
-            className="main-tabs"
-          >
-            <TabPanel 
-              header={
-                <div className="tab-header">
-                  <i className="pi pi-file-o"></i>
-                  <span>Invoices</span>
-                </div>
-              }
-            >
-              <InvoiceList isAdmin={isAdmin} />
-            </TabPanel>
-            
-            {isAdmin && (
-              <TabPanel 
-                header={
-                  <div className="tab-header">
-                    <i className="pi pi-plus"></i>
-                    <span>Create invoice</span>
-                  </div>
-                }
-              >
-                <CreateInvoice />
-              </TabPanel>
-            )}
-
-            {isAdmin && (
-              <TabPanel 
-                header={
-                  <div className="tab-header">
-                    <i className="pi pi-users"></i>
-                    <span>Profiles</span>
-                  </div>
-                }
-              >
-                <AdminProfiles />
-              </TabPanel>
-            )}
-
-            {isAdmin && (
-              <TabPanel 
-                header={
-                  <div className="tab-header">
-                    <i className="pi pi-user-plus"></i>
-                    <span>Create user</span>
-                  </div>
-                }
-              >
-                <CreateUser />
-              </TabPanel>
-            )}
-
-            <TabPanel 
-              header={
-                <div className="tab-header">
-                  <i className="pi pi-briefcase"></i>
-                  <span>Profile</span>
-                </div>
-              }
-            >
-              <Profile />
-            </TabPanel>
-          </TabView>
+          {renderContent()}
         </div>
       </div>
     </div>

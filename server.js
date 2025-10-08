@@ -87,6 +87,9 @@ const userProfileSchema = new mongoose.Schema({
   phone: { type: String, default: '' },
   logoUrl: { type: String, default: '' },
   signatureUrl: { type: String, default: '' },
+  swiftCode: { type: String, default: '' },
+  iban: { type: String, default: '' },
+  cardNumber: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
@@ -114,6 +117,9 @@ const invoiceSchema = new mongoose.Schema({
   issuerPhone: { type: String, default: '' },
   issuerLogoUrl: { type: String, default: '' },
   issuerSignatureUrl: { type: String, default: '' },
+  issuerSwiftCode: { type: String, default: '' },
+  issuerIban: { type: String, default: '' },
+  issuerCardNumber: { type: String, default: '' },
 
   // Client
   clientName: { type: String, required: true },
@@ -131,7 +137,6 @@ const invoiceSchema = new mongoose.Schema({
   description: { type: String, default: '' },
   dueDate: { type: Date, required: true },
   isPaid: { type: Boolean, default: false },
-  paymentMethod: { type: String, enum: ['Payoneer', 'Western Union', 'Zelle', 'Credit Card', 'Authorize.net', 'Paypal'], default: null },
   paidAt: { type: Date, default: null },
 
   // Identification
@@ -224,17 +229,87 @@ async function sendVerificationEmail(toEmail, token) {
   }
 }
 
+
+async function sendWelcomeEmail(toEmail, userName, customPassword = null) {
+  try {
+    const basePreference = (process.env.FRONTEND_BASE_URL || process.env.BACKEND_BASE_URL || 'https://payments.uptimio.com').replace(/\/$/, '');
+    const loginUrl = basePreference;
+    
+    const html = baseEmailTemplate({
+      title: 'Welcome to Uptimio Payment System',
+      intro: `Hello ${userName},<br><br>Welcome to Uptimio Payment System! Your account has been successfully created.<br><br><strong>Your temporary password is: ${customPassword || "Please contact administrator"}</strong><br><br><strong>IMPORTANT:</strong> To complete your account setup and verify your email, please follow these steps:<br><br>1. Click the "Access System" button below to log in<br>2. Use your email and the temporary password above<br>3. Go to your Profile settings and change your password<br>4. Once you change your password, your account will be verified<br><br>You can now access the system and start managing your invoices. As a system administrator who deals with networks, help desk, server maintenance, and web development, I am excited to have you as part of our platform.<br><br>Uptimio - Your reliable partner for IT solutions`,
+      actionUrl: loginUrl,
+      actionLabel: 'Access System',
+      footer: 'Thank you for joining Uptimio Payment System.',
+      logoUrl: process.env.MAIL_LOGO_URL || '/uploads/uptimioInvoice.jpg',
+      signatureUrl: process.env.MAIL_SIGNATURE_URL || ''
+    });
+
+    if (!process.env.SMTP_HOST) {
+      console.log('[DEV] Welcome email link:', loginUrl);
+      return { devLink: loginUrl };
+    }
+    
+    const info = await transporter.sendMail({
+      from: process.env.MAIL_FROM || 'no-reply@uptiomio.local',
+      to: toEmail,
+      subject: 'Uptimio Payment Services - Welcome',
+      html,
+    });
+    console.log('Welcome email sent:', { messageId: info.messageId, to: toEmail, userName });
+    return { messageId: info.messageId };
+  } catch (err) {
+    console.error('Welcome email error (non-fatal):', err);
+    return { error: err.message || 'send_failed' };
+  }
+}
+
+
+async function sendPasswordResetEmail(toEmail, userName, newPassword) {
+  try {
+    const basePreference = (process.env.FRONTEND_BASE_URL || process.env.BACKEND_BASE_URL || 'https://payments.uptimio.com').replace(/\/$/, '');
+    const loginUrl = basePreference;
+    
+    const html = baseEmailTemplate({
+      title: 'Password Reset - Uptimio Payment System',
+      intro: `Hello ${userName},<br><br>Your password has been reset by an administrator.<br><br><strong>Your new temporary password is: ${newPassword}</strong><br><br>Please log in with this password and change it to something secure of your choice.<br><br>As a system administrator who deals with networks, help desk, server maintenance, and web development, I recommend using a strong password for security.<br><br>Uptimio - Your reliable partner for IT solutions`,
+      actionUrl: loginUrl,
+      actionLabel: 'Login to System',
+      footer: 'Please change your password after logging in for security.',
+      logoUrl: process.env.MAIL_LOGO_URL || '/uploads/uptimioInvoice.jpg',
+      signatureUrl: process.env.MAIL_SIGNATURE_URL || ''
+    });
+
+    if (!process.env.SMTP_HOST) {
+      console.log('[DEV] Password reset email link:', loginUrl);
+      return { devLink: loginUrl };
+    }
+    
+    const info = await transporter.sendMail({
+      from: process.env.MAIL_FROM || 'no-reply@uptiomio.local',
+      to: toEmail,
+      subject: 'Password Reset - Uptimio Payment System',
+      html,
+    });
+    console.log('Password reset email sent:', { messageId: info.messageId, to: toEmail, userName });
+    return { messageId: info.messageId };
+  } catch (err) {
+    console.error('Password reset email error (non-fatal):', err);
+    return { error: err.message || 'send_failed' };
+  }
+}
+
 async function sendInvoiceCreatedEmail(toEmail, invoiceId, clientName, logoUrl, signatureUrl) {
   try {
     const basePreference = (process.env.FRONTEND_BASE_URL || process.env.BACKEND_BASE_URL || 'https://payments.uptimio.com').replace(/\/$/, '');
     const viewUrl = `${basePreference}/?invoiceId=${encodeURIComponent(String(invoiceId))}`;
     const html = baseEmailTemplate({
-      title: 'New invoice available',
-      intro: `Hello${clientName ? ' ' + clientName : ''}, an invoice has been issued for you. You can view or download it using the link below:`,
+      title: 'New Invoice Available - Uptimio',
+      intro: `Hello${clientName ? ' ' + clientName : ''},<br><br>Please find your new invoice from Uptimio agency. You can view or download it using the link below:<br><br>Thank you for working with Uptimio agency. As a system administrator who deals with networks, help desk, server maintenance, and web development, I appreciate your trust in our services.<br><br>Uptimio - Your reliable partner for IT solutions`,
       actionUrl: viewUrl,
-      actionLabel: 'View invoice',
-      footer: 'Thank you for your business.',
-      logoUrl: logoUrl || process.env.MAIL_LOGO_URL || '',
+      actionLabel: 'View Invoice',
+      footer: 'Thank you for your cooperation with Uptimio agency.',
+      logoUrl: logoUrl || process.env.MAIL_LOGO_URL || '/uploads/uptimioInvoice.jpg',
       signatureUrl: signatureUrl || process.env.MAIL_SIGNATURE_URL || ''
     });
 
@@ -245,7 +320,7 @@ async function sendInvoiceCreatedEmail(toEmail, invoiceId, clientName, logoUrl, 
     const info = await transporter.sendMail({
       from: process.env.MAIL_FROM || 'no-reply@uptiomio.local',
       to: toEmail,
-      subject: 'New invoice available',
+      subject: 'Uptimio Payment Services - New Invoice',
       html,
     });
     console.log('Invoice email sent:', { messageId: info.messageId, to: toEmail, invoiceId });
@@ -276,13 +351,175 @@ async function sendInvoiceReminderEmail(toEmail, invoiceId, clientName, logoUrl,
     const info = await transporter.sendMail({
       from: process.env.MAIL_FROM || 'no-reply@uptiomio.local',
       to: toEmail,
-      subject: 'Payment reminder',
+      subject: 'Uptimio Payment Services - Payment Reminder',
       html,
     });
     console.log('Reminder email sent:', { messageId: info.messageId, to: toEmail, invoiceId });
     return { messageId: info.messageId };
   } catch (err) {
     console.error('Reminder email error (non-fatal):', err);
+    return { error: err.message || 'send_failed' };
+  }
+}
+
+// Daily reminder for users with 2+ overdue invoices
+async function sendDailyOverdueReminderEmail(toEmail, clientName, overdueInvoices, logoUrl, signatureUrl) {
+  try {
+    const invoiceCount = overdueInvoices.length;
+    const totalAmount = overdueInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+    const oldestInvoice = overdueInvoices.reduce((oldest, inv) => 
+      new Date(inv.createdAt) < new Date(oldest.createdAt) ? inv : oldest
+    );
+    
+    const basePreference = (process.env.FRONTEND_BASE_URL || process.env.BACKEND_BASE_URL || 'https://payments.uptimio.com').replace(/\/$/, '');
+    const dashboardUrl = basePreference;
+    
+    const html = baseEmailTemplate({
+      title: 'Urgent: Multiple Unpaid Invoices',
+      intro: `Hello${clientName ? ' ' + clientName : ''},<br><br>We noticed that you currently have <strong>${invoiceCount} unpaid invoices</strong> totaling <strong>$${totalAmount.toFixed(2)}</strong>.<br><br>Your oldest unpaid invoice is from ${new Date(oldestInvoice.createdAt).toLocaleDateString()}.<br><br>To avoid any service interruptions and late fees, please settle your outstanding invoices as soon as possible.<br><br>You can view all your invoices and make payments through our secure portal:`,
+      actionUrl: dashboardUrl,
+      actionLabel: 'View All Invoices',
+      footer: `This is an automated reminder. You will receive daily reminders until all invoices are paid. If you have any questions or need assistance with payment, please contact us immediately.`,
+      logoUrl: logoUrl || process.env.MAIL_LOGO_URL || '',
+      signatureUrl: signatureUrl || process.env.MAIL_SIGNATURE_URL || ''
+    });
+
+    if (!process.env.SMTP_HOST) {
+      console.log('[DEV] Daily overdue reminder link:', dashboardUrl);
+      return { devLink: dashboardUrl };
+    }
+
+    const info = await transporter.sendMail({
+      from: process.env.MAIL_FROM || 'no-reply@uptiomio.local',
+      to: toEmail,
+      subject: `Uptimio Payment Services - ${invoiceCount} Unpaid Invoices Require Immediate Attention`,
+      html
+    });
+
+    console.log('Daily overdue reminder sent:', { 
+      messageId: info.messageId, 
+      to: toEmail, 
+      invoiceCount, 
+      totalAmount: totalAmount.toFixed(2) 
+    });
+    return { messageId: info.messageId };
+  } catch (err) {
+    console.error('Daily overdue reminder email error (non-fatal):', err);
+    return { error: err.message || 'send_failed' };
+  }
+}
+
+// Admin notification functions
+async function sendAdminPasswordResetNotification(adminEmail, userEmail, userName, adminName) {
+  try {
+    const html = baseEmailTemplate({
+      title: 'Password Reset Notification - Uptimio Admin',
+      intro: `Hello ${adminName},<br><br>You have successfully reset the password for user:<br><br><strong>User Details:</strong><br>• Name: ${userName}<br>• Email: ${userEmail}<br>• Reset Date: ${new Date().toLocaleString()}<br><br>The user has been notified via email about their new password. This action has been logged for your records.<br><br>If this action was not performed by you, please contact system administrator immediately.`,
+      actionUrl: `${process.env.FRONTEND_BASE_URL || process.env.BACKEND_BASE_URL || 'https://payments.uptimio.com'}/admin`,
+      actionLabel: 'Access Admin Panel',
+      footer: 'This is an automated notification from Uptimio Admin System.',
+      logoUrl: process.env.MAIL_LOGO_URL || '',
+      signatureUrl: process.env.MAIL_SIGNATURE_URL || ''
+    });
+
+    if (!process.env.SMTP_HOST) {
+      console.log('[DEV] Admin password reset notification would be sent to:', adminEmail);
+      return { devLink: 'Admin notification' };
+    }
+
+    const info = await transporter.sendMail({
+      from: process.env.MAIL_FROM || 'no-reply@uptiomio.local',
+      to: adminEmail,
+      subject: 'Password Reset Notification - Uptimio Admin',
+      html: html
+    });
+
+    console.log('Admin password reset notification sent:', { 
+      messageId: info.messageId, 
+      to: adminEmail, 
+      userEmail,
+      userName 
+    });
+    return { messageId: info.messageId };
+  } catch (err) {
+    console.error('Admin password reset notification error (non-fatal):', err);
+    return { error: err.message || 'send_failed' };
+  }
+}
+
+async function sendAdminReminderNotification(adminEmail, userEmail, userName, invoiceId, adminName) {
+  try {
+    const html = baseEmailTemplate({
+      title: 'Payment Reminder Sent - Uptimio Admin',
+      intro: `Hello ${adminName},<br><br>A payment reminder has been sent to the following user:<br><br><strong>User Details:</strong><br>• Name: ${userName}<br>• Email: ${userEmail}<br>• Invoice ID: ${invoiceId}<br>• Reminder Date: ${new Date().toLocaleString()}<br><br>The user has been notified via email about their overdue payment. This action has been logged for your records.`,
+      actionUrl: `${process.env.FRONTEND_BASE_URL || process.env.BACKEND_BASE_URL || 'https://payments.uptimio.com'}/admin`,
+      actionLabel: 'View Invoice Details',
+      footer: 'This is an automated notification from Uptimio Admin System.',
+      logoUrl: process.env.MAIL_LOGO_URL || '',
+      signatureUrl: process.env.MAIL_SIGNATURE_URL || ''
+    });
+
+    if (!process.env.SMTP_HOST) {
+      console.log('[DEV] Admin reminder notification would be sent to:', adminEmail);
+      return { devLink: 'Admin reminder notification' };
+    }
+
+    const info = await transporter.sendMail({
+      from: process.env.MAIL_FROM || 'no-reply@uptiomio.local',
+      to: adminEmail,
+      subject: 'Payment Reminder Sent - Uptimio Admin',
+      html: html
+    });
+
+    console.log('Admin reminder notification sent:', { 
+      messageId: info.messageId, 
+      to: adminEmail, 
+      userEmail,
+      userName,
+      invoiceId 
+    });
+    return { messageId: info.messageId };
+  } catch (err) {
+    console.error('Admin reminder notification error (non-fatal):', err);
+    return { error: err.message || 'send_failed' };
+  }
+}
+
+async function sendAdminDailyReminderNotification(adminEmail, userEmail, userName, invoiceCount, totalAmount, adminName) {
+  try {
+    const html = baseEmailTemplate({
+      title: 'Daily Overdue Reminder Sent - Uptimio Admin',
+      intro: `Hello ${adminName},<br><br>A daily overdue reminder has been sent to the following user:<br><br><strong>User Details:</strong><br>• Name: ${userName}<br>• Email: ${userEmail}<br>• Overdue Invoices: ${invoiceCount}<br>• Total Amount: $${totalAmount.toFixed(2)}<br>• Reminder Date: ${new Date().toLocaleString()}<br><br>The user has been notified via email about their multiple overdue invoices. This action has been logged for your records.`,
+      actionUrl: `${process.env.FRONTEND_BASE_URL || process.env.BACKEND_BASE_URL || 'https://payments.uptimio.com'}/admin`,
+      actionLabel: 'Access Admin Panel',
+      footer: 'This is an automated notification from Uptimio Admin System.',
+      logoUrl: process.env.MAIL_LOGO_URL || '',
+      signatureUrl: process.env.MAIL_SIGNATURE_URL || ''
+    });
+
+    if (!process.env.SMTP_HOST) {
+      console.log('[DEV] Admin daily reminder notification would be sent to:', adminEmail);
+      return { devLink: 'Admin daily reminder notification' };
+    }
+
+    const info = await transporter.sendMail({
+      from: process.env.MAIL_FROM || 'no-reply@uptiomio.local',
+      to: adminEmail,
+      subject: 'Daily Overdue Reminder Sent - Uptimio Admin',
+      html: html
+    });
+
+    console.log('Admin daily reminder notification sent:', { 
+      messageId: info.messageId, 
+      to: adminEmail, 
+      userEmail,
+      userName,
+      invoiceCount,
+      totalAmount: totalAmount.toFixed(2)
+    });
+    return { messageId: info.messageId };
+  } catch (err) {
+    console.error('Admin daily reminder notification error (non-fatal):', err);
     return { error: err.message || 'send_failed' };
   }
 }
@@ -342,10 +579,50 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
     const update = req.body || {};
     const profile = await UserProfile.findOneAndUpdate(
       { userId: req.user.userId },
-      { $set: update, updatedAt: new Date() },
+      { $set: { ...update, updatedAt: new Date() } },
       { new: true, upsert: true }
     );
     res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+
+// Change user password
+app.post('/api/profile/change-password', authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required' });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'New password must be at least 6 characters' });
+    }
+    
+    // Find user
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+    
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password
+    await User.findByIdAndUpdate(req.user.userId, { password: hashedNewPassword });
+    // Mark user as verified when they change their password
+    await User.findByIdAndUpdate(req.user.userId, { isVerified: true });
+    
+    res.json({ message: 'Password changed successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -435,6 +712,9 @@ app.post('/api/register', async (req, res) => {
     // Send verification email (non-blocking)
     if (EMAIL_VERIFICATION_ENABLED && user.verificationToken) {
       sendVerificationEmail(user.email, user.verificationToken);
+    } else {
+      // Send welcome email when verification is disabled
+      sendWelcomeEmail(user.email, user.name);
     }
 
     // Generate JWT
@@ -561,71 +841,33 @@ app.get('/api/my-invoices', authenticateToken, async (req, res) => {
 // Create invoice (admin only)
 app.post('/api/invoices', authenticateToken, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Admin access required' });
-    }
+    const {
+      issuerName, issuerCompany, issuerAddress, issuerCountry, issuerPhone,
+      issuerLogoUrl, issuerSignatureUrl, issuerSwiftCode, issuerIban, issuerCardNumber,
+      clientName, clientEmail, clientCompany, clientAddress, clientCountry, clientPhone,
+      items, amount, currency, notes, description, dueDate,
+      reminderEnabled, reminderHour, reminderMinute
+    } = req.body;
 
-    const { clientName, clientEmail, clientCompany, clientAddress, clientCountry, clientPhone, items, currency, notes, description, dueDate, paymentMethod, reminderEnabled, reminderIntervalDays, reminderHour, reminderMinute } = req.body;
-
-    // Load issuer from profile (if exists)
-    const profile = await UserProfile.findOne({ userId: req.user.userId });
-    const issuerName = profile?.fullName || 'Nikola Jeremic';
-    const issuerCompany = profile?.companyName || 'Uptimio';
-    const issuerAddress = profile?.addressLine || 'Mose Pijade 6, Veliki Radinci, 22211, Serbia';
-    const issuerCountry = profile?.country || 'Serbia';
-    const issuerPhone = profile?.phone || '';
-    const issuerLogoUrl = profile?.logoUrl || '';
-    const issuerSignatureUrl = profile?.signatureUrl || '';
-
-    // Compute amount from items
-    const safeItems = Array.isArray(items) ? items.map(i => ({
-      description: String(i.description || ''),
-      quantity: Number(i.quantity || 0),
-      unitPrice: Number(i.unitPrice || 0)
-    })) : [];
-    const computedAmount = safeItems.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0);
-
-    // Assign next invoice number
-    const year = new Date().getFullYear();
-    const seq = await getNextSequence(`invoiceNumber:${year}`);
-    const padded = String(seq).padStart(6, '0');
-    const invoiceNumberStr = `INV-${year}-${padded}`;
+    // Generate invoice number
+    const lastInvoice = await Invoice.findOne({}, {}, { sort: { invoiceNumber: -1 } });
+    const invoiceNumber = lastInvoice ? lastInvoice.invoiceNumber + 1 : 1;
+    const invoiceNumberStr = `INV-${invoiceNumber.toString().padStart(6, '0')}`;
 
     const invoice = new Invoice({
-      issuerName,
-      issuerCompany,
-      issuerAddress,
-      issuerCountry,
-      issuerPhone,
-      issuerLogoUrl,
-      issuerSignatureUrl,
-      clientName,
-      clientEmail,
-      clientCompany: clientCompany || '',
-      clientAddress: clientAddress || '',
-      clientCountry: clientCountry || '',
-      clientPhone: clientPhone || '',
-      items: safeItems,
-      amount: computedAmount,
-      currency: currency || 'USD',
-      notes: notes || '',
-      description: description || '',
-      dueDate,
-      paymentMethod,
-      reminderEnabled: !!reminderEnabled,
-      reminderIntervalDays: Number(reminderIntervalDays || 7),
-      reminderHour: typeof reminderHour === 'number' ? reminderHour : null,
-      reminderMinute: typeof reminderMinute === 'number' ? reminderMinute : null,
-      createdBy: req.user.userId,
-      invoiceNumber: seq,
-      invoiceNumberStr
+      issuerName, issuerCompany, issuerAddress, issuerCountry, issuerPhone,
+      issuerLogoUrl, issuerSignatureUrl, issuerSwiftCode, issuerIban, issuerCardNumber,
+      clientName, clientEmail, clientCompany, clientAddress, clientCountry, clientPhone,
+      items, amount, currency, notes, description, dueDate,
+      reminderEnabled, reminderHour, reminderMinute,
+      invoiceNumber, invoiceNumberStr,
+      createdBy: req.user.userId
     });
 
     await invoice.save();
 
-    // Non-blocking email to client with view link (include branding)
+    // Send email to client with view link
     sendInvoiceCreatedEmail(clientEmail, invoice._id, clientName, issuerLogoUrl, issuerSignatureUrl);
-
     res.status(201).json(invoice);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -660,6 +902,9 @@ app.patch('/api/invoices/:id/pay', authenticateToken, async (req, res) => {
     invoice.paidAt = new Date();
 
     await invoice.save();
+
+    // Send email to client with view link
+    sendInvoiceCreatedEmail(clientEmail, invoice._id, clientName, issuerLogoUrl, issuerSignatureUrl);
     res.json(invoice);
   } catch (error) {
     if (error?.name === 'CastError') {
@@ -761,25 +1006,24 @@ app.post('/api/users', authenticateToken, async (req, res) => {
       return res.status(403).json({ message: 'Admin access required' });
     }
 
-    const { name, email, password, role, profile } = req.body;
-
+    const { name, email, password, role, profile, customPassword } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Name, email and password are required' });
     }
-
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Use custom password if provided, otherwise use regular password
+    const finalPassword = customPassword || password;
+    const hashedPassword = await bcrypt.hash(finalPassword, 10);
 
     const newUser = new User({
       name,
       email,
       password: hashedPassword,
-      role: role === 'admin' ? 'admin' : 'user',
-      isVerified: EMAIL_VERIFICATION_ENABLED ? false : true,
+      isVerified: false,
       verificationToken: EMAIL_VERIFICATION_ENABLED ? crypto.randomBytes(32).toString('hex') : null
     });
 
@@ -805,6 +1049,9 @@ app.post('/api/users', authenticateToken, async (req, res) => {
 
     if (EMAIL_VERIFICATION_ENABLED && newUser.verificationToken) {
       sendVerificationEmail(newUser.email, newUser.verificationToken);
+    } else {
+      // Send welcome email when verification is disabled
+      sendWelcomeEmail(newUser.email, newUser.name, finalPassword);
     }
 
     const { password: _, ...safeUser } = newUser.toObject();
@@ -825,6 +1072,99 @@ app.delete('/api/users/:id', authenticateToken, async (req, res) => {
     await UserProfile.findOneAndDelete({ userId: id });
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json({ message: 'User deleted' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+
+// Admin: reset user password
+app.post('/api/users/:id/reset-password', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    
+    const { id } = req.params;
+    const { customPassword } = req.body;
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Generate or use custom password
+    const tempPassword = customPassword || Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    
+    // Update user password
+    await User.findByIdAndUpdate(id, { password: hashedPassword });
+    
+    // Send password reset email to user
+    await sendPasswordResetEmail(user.email, user.name, tempPassword);
+    
+    // Send admin notification
+    const adminEmail = process.env.ADMIN_EMAIL || req.user.email; // Use environment variable or current admin email
+    const adminName = req.user.name || 'Administrator';
+    await sendAdminPasswordResetNotification(adminEmail, user.email, user.name, adminName);
+    
+    res.json({ 
+      message: 'Password reset successfully. New password sent to user email and admin notification sent.',
+      tempPassword: tempPassword // Only for admin to see
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+
+// Admin: send manual reminder for invoice
+app.post('/api/invoices/:id/send-reminder', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    
+    const { id } = req.params;
+    const invoice = await Invoice.findById(id).populate('createdBy', 'name email');
+    
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+    
+    if (invoice.isPaid) {
+      return res.status(400).json({ message: 'Invoice is already paid' });
+    }
+    
+    // Get issuer profile for logo and signature
+    const issuerProfile = await UserProfile.findOne({ userId: invoice.createdBy._id });
+    
+    // Send reminder email
+    const result = await sendInvoiceReminderEmail(
+      invoice.clientEmail,
+      invoice._id,
+      invoice.clientName,
+      issuerProfile?.logoUrl,
+      issuerProfile?.signatureUrl
+    );
+    
+    // Send admin notification
+    const adminEmail = process.env.ADMIN_EMAIL || req.user.email;
+    const adminName = req.user.name || 'Administrator';
+    await sendAdminReminderNotification(
+      adminEmail, 
+      invoice.clientEmail, 
+      invoice.clientName, 
+      invoice._id, 
+      adminName
+    );
+    
+    // Update last reminder timestamp
+    await Invoice.findByIdAndUpdate(id, { lastReminderAt: new Date() });
+    
+    res.json({ 
+      message: 'Reminder sent successfully to user and admin notification sent',
+      result: result
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -869,7 +1209,7 @@ app.put('/api/users/:id/profile', authenticateToken, async (req, res) => {
     const update = req.body || {};
     const profile = await UserProfile.findOneAndUpdate(
       { userId: id },
-      { $set: update, updatedAt: new Date() },
+      { $set: { ...update, updatedAt: new Date() } },
       { upsert: true, new: true }
     );
     res.json(profile);
@@ -922,6 +1262,101 @@ app.post('/api/test-email', authenticateToken, async (req, res) => {
     console.error('Test email error:', error);
     res.status(500).json({ message: 'Email send failed', error: error.message });
   }
+});
+
+// Admin: manually trigger overdue reminder check
+app.post('/api/admin/trigger-overdue-reminders', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+
+  try {
+    console.log('Manually triggering overdue reminder check...');
+    await checkAndSendOverdueReminders();
+    res.json({ message: 'Overdue reminder check completed successfully' });
+  } catch (error) {
+    console.error('Manual overdue reminder check error:', error);
+    res.status(500).json({ message: 'Overdue reminder check failed', error: error.message });
+  }
+});
+
+// Function to check and send daily overdue reminders
+async function checkAndSendOverdueReminders() {
+  try {
+    console.log('Checking for users with 2+ overdue invoices...');
+    
+    // Get all unpaid invoices created in the last 15 days
+    const fifteenDaysAgo = new Date();
+    fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
+    
+    const unpaidInvoices = await Invoice.find({
+      isPaid: false,
+      createdAt: { $gte: fifteenDaysAgo }
+    }).populate('createdBy', 'name email');
+    
+    // Group invoices by client email
+    const invoicesByClient = {};
+    unpaidInvoices.forEach(invoice => {
+      if (!invoicesByClient[invoice.clientEmail]) {
+        invoicesByClient[invoice.clientEmail] = [];
+      }
+      invoicesByClient[invoice.clientEmail].push(invoice);
+    });
+    
+    // Find clients with 2+ unpaid invoices
+    const clientsWithMultipleInvoices = Object.entries(invoicesByClient)
+      .filter(([email, invoices]) => invoices.length >= 2);
+    
+    console.log(`Found ${clientsWithMultipleInvoices.length} clients with 2+ unpaid invoices`);
+    
+    // Send reminders to each client
+    for (const [clientEmail, invoices] of clientsWithMultipleInvoices) {
+      try {
+        const clientName = invoices[0].clientName;
+        const issuerProfile = await UserProfile.findOne({ 
+          userId: invoices[0].createdBy._id 
+        });
+        
+        const logoUrl = issuerProfile?.logoUrl || '';
+        const signatureUrl = issuerProfile?.signatureUrl || '';
+        
+        await sendDailyOverdueReminderEmail(
+          clientEmail,
+          clientName,
+          invoices,
+          logoUrl,
+          signatureUrl
+        );
+        
+        // Send admin notification
+        const adminEmail = process.env.ADMIN_EMAIL || 'admin@uptimio.com';
+        const adminName = 'Administrator';
+        const totalAmount = invoices.reduce((sum, inv) => sum + inv.amount, 0);
+        await sendAdminDailyReminderNotification(
+          adminEmail,
+          clientEmail,
+          clientName,
+          invoices.length,
+          totalAmount,
+          adminName
+        );
+        
+        console.log(`Daily overdue reminder sent to ${clientEmail} for ${invoices.length} invoices and admin notification sent`);
+      } catch (err) {
+        console.error(`Failed to send overdue reminder to ${clientEmail}:`, err);
+      }
+    }
+    
+    console.log('Daily overdue reminder check completed');
+  } catch (err) {
+    console.error('Daily overdue reminder check error:', err);
+  }
+}
+
+// Daily scheduler for overdue reminders (runs at 9 AM every day)
+cron.schedule('0 9 * * *', async () => {
+  console.log('Running daily overdue reminder check...');
+  await checkAndSendOverdueReminders();
 });
 
 app.listen(PORT, () => {

@@ -3,7 +3,10 @@ import { Card } from 'primereact/card';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
 import { Message } from 'primereact/message';
+import { Dialog } from 'primereact/dialog';
+import { Password } from 'primereact/password';
 import { profileAPI } from '../services/api';
+import './Profile.css';
 
 // Define a strong type for the profile document we edit
 type UserProfile = {
@@ -18,6 +21,9 @@ type UserProfile = {
   phone: string;
   logoUrl?: string;
   signatureUrl?: string;
+  swiftCode?: string;
+  iban?: string;
+  cardNumber?: string;
   createdAt?: string;
   updatedAt?: string;
   _id?: string;
@@ -33,7 +39,10 @@ const defaultProfile: UserProfile = {
   country: '',
   phone: '',
   logoUrl: '',
-  signatureUrl: ''
+  signatureUrl: '',
+  swiftCode: '',
+  iban: '',
+  cardNumber: ''
 };
 
 const Profile: React.FC = () => {
@@ -44,6 +53,13 @@ const Profile: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingSignature, setUploadingSignature] = useState(false);
+  const [passwordDialog, setPasswordDialog] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -58,7 +74,17 @@ const Profile: React.FC = () => {
     })();
   }, []);
 
-  const set = (key: keyof UserProfile, value: any) => {
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const handleChange = (key: keyof UserProfile, value: string) => {
     setError('');
     setSuccess('');
     setForm((f) => ({ ...f, [key]: value } as UserProfile));
@@ -76,141 +102,345 @@ const Profile: React.FC = () => {
       country: src.country || '',
       phone: src.phone || '',
       logoUrl: src.logoUrl || '',
-      signatureUrl: src.signatureUrl || ''
+      signatureUrl: src.signatureUrl || '',
+      swiftCode: src.swiftCode || '',
+      iban: src.iban || '',
+      cardNumber: src.cardNumber || ''
     };
   };
 
-  const onSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(''); setSuccess(''); setLoading(true);
+  const saveProfile = async () => {
+    setLoading(true); setError(''); setSuccess('');
     try {
-      const payload = buildUpdatePayload(form);
-      const { data } = await profileAPI.update(payload);
-      setForm({ ...defaultProfile, ...(data || {}) });
-      setSuccess('Profile saved successfully.');
+      await profileAPI.update(buildUpdatePayload(form));
+      setSuccess('Profile updated successfully');
     } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to save profile');
+      setError(e.response?.data?.message || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
   };
 
-  const onUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingLogo(true); setError(''); setSuccess('');
+  const changePassword = async () => {
+    setPasswordError('');
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('All fields are required');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters');
+      return;
+    }
+    
+    setChangingPassword(true);
     try {
-      const { data } = await profileAPI.uploadLogo(file);
-      setForm((f) => ({ ...(f || defaultProfile), logoUrl: data.url }));
-      setSuccess('Logo uploaded.');
+      const response = await fetch('/api/profile/change-password', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSuccess('Password changed successfully');
+        setPasswordDialog(false);
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        setPasswordError(data.message || 'Failed to change password');
+      }
     } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to upload logo');
+      setPasswordError('Failed to change password');
     } finally {
-      setUploadingLogo(false);
-      e.target.value = '';
+      setChangingPassword(false);
     }
   };
 
-  const onUploadSignature = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingSignature(true); setError(''); setSuccess('');
+  const uploadFile = async (file: File, type: 'logo' | 'signature') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+
     try {
-      const { data } = await profileAPI.uploadSignature(file);
-      setForm((f) => ({ ...(f || defaultProfile), signatureUrl: data.url }));
-      setSuccess('Signature uploaded.');
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to upload signature');
-    } finally {
-      setUploadingSignature(false);
-      e.target.value = '';
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      return data.url;
+    } catch (error) {
+      throw error;
     }
   };
 
-  const header = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-      <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {form.logoUrl ? (
-          <img src={form.logoUrl} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        ) : (
-          <span className="pi pi-building" style={{ color: '#9ca3af' }} />
-        )}
+  const handleFileUpload = async (file: File, type: 'logo' | 'signature') => {
+    const setUploading = type === 'logo' ? setUploadingLogo : setUploadingSignature;
+    setUploading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const url = await uploadFile(file, type);
+      const key = type === 'logo' ? 'logoUrl' : 'signatureUrl';
+      handleChange(key, url);
+      setSuccess(`${type === 'logo' ? 'Logo' : 'Signature'} uploaded successfully`);
+    } catch (e: any) {
+      setError(`Failed to upload ${type}: ${e.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (initialLoading) {
+    return (
+      <div className="profile-loading">
+        <i className="pi pi-spin pi-spinner"></i>
+        <div>Loading profile...</div>
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600 }}>{form.companyName || 'Business Profile'}</div>
-        <div style={{ color: '#6b7280', fontSize: 12 }}>{form.fullName || 'Set your details below'}</div>
-      </div>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <label className="p-button p-component" style={{ cursor: uploadingLogo ? 'not-allowed' : 'pointer', padding: '0.5rem 0.75rem' }}>
-          <span className="pi pi-upload" style={{ marginRight: 8 }} /> Upload logo
-          <input type="file" accept="image/*" onChange={onUploadLogo} disabled={initialLoading || uploadingLogo || loading} style={{ display: 'none' }} />
-        </label>
-        <label className="p-button p-component p-button-outlined" style={{ cursor: uploadingSignature ? 'not-allowed' : 'pointer', padding: '0.5rem 0.75rem' }}>
-          <span className="pi pi-pencil" style={{ marginRight: 8 }} /> Upload signature
-          <input type="file" accept="image/*" onChange={onUploadSignature} disabled={initialLoading || uploadingSignature || loading} style={{ display: 'none' }} />
-        </label>
-      </div>
-    </div>
-  );
+    );
+  }
 
   return (
     <div className="profile-container">
-      <Card header={header}>
-        <p style={{ marginTop: 0, color: '#6b7280' }}>These details will appear on your invoices (currency: USD).</p>
-        <form onSubmit={onSave} className="profile-form">
-          <div className="p-fluid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div className="field">
-              <label>Full name</label>
-              <InputText disabled={initialLoading || loading} value={form.fullName || ''} onChange={(e) => set('fullName', e.target.value)} />
+      <Card title="Profile Settings" className="profile-card">
+        {error && <Message severity="error" text={error} />}
+        {success && <Message severity="success" text={success} />}
+
+        <div className="form-section">
+          <h3>Basic Information</h3>
+          <div className="form-grid-2">
+            <div className="form-field">
+              <label>Company Name</label>
+              <InputText
+                value={form.companyName}
+                onChange={(e) => handleChange('companyName', e.target.value)}
+              />
             </div>
-            <div className="field">
-              <label>Company name</label>
-              <InputText disabled={initialLoading || loading} value={form.companyName || ''} onChange={(e) => set('companyName', e.target.value)} />
+            <div className="form-field">
+              <label>Full Name</label>
+              <InputText
+                value={form.fullName}
+                onChange={(e) => handleChange('fullName', e.target.value)}
+              />
             </div>
-            <div className="field" style={{ gridColumn: '1 / span 2' }}>
-              <label>Address</label>
-              <InputText disabled={initialLoading || loading} value={form.addressLine || ''} onChange={(e) => set('addressLine', e.target.value)} />
-            </div>
-            <div className="field">
+          </div>
+        </div>
+
+        <div className="form-section">
+          <h3>Address Information</h3>
+          <div className="form-field">
+            <label>Address Line</label>
+            <InputText
+              value={form.addressLine}
+              onChange={(e) => handleChange('addressLine', e.target.value)}
+            />
+          </div>
+
+          <div className="form-grid-3">
+            <div className="form-field">
               <label>City</label>
-              <InputText disabled={initialLoading || loading} value={form.city || ''} onChange={(e) => set('city', e.target.value)} />
+              <InputText
+                value={form.city}
+                onChange={(e) => handleChange('city', e.target.value)}
+              />
             </div>
-            <div className="field">
-              <label>State/Province</label>
-              <InputText disabled={initialLoading || loading} value={form.state || ''} onChange={(e) => set('state', e.target.value)} />
+            <div className="form-field">
+              <label>State</label>
+              <InputText
+                value={form.state}
+                onChange={(e) => handleChange('state', e.target.value)}
+              />
             </div>
-            <div className="field">
-              <label>Postal code</label>
-              <InputText disabled={initialLoading || loading} value={form.postalCode || ''} onChange={(e) => set('postalCode', e.target.value)} />
+            <div className="form-field">
+              <label>Postal Code</label>
+              <InputText
+                value={form.postalCode}
+                onChange={(e) => handleChange('postalCode', e.target.value)}
+              />
             </div>
-            <div className="field">
+          </div>
+
+          <div className="form-grid-2">
+            <div className="form-field">
               <label>Country</label>
-              <InputText disabled={initialLoading || loading} value={form.country || ''} onChange={(e) => set('country', e.target.value)} />
+              <InputText
+                value={form.country}
+                onChange={(e) => handleChange('country', e.target.value)}
+              />
             </div>
-            <div className="field">
+            <div className="form-field">
               <label>Phone</label>
-              <InputText disabled={initialLoading || loading} value={form.phone || ''} onChange={(e) => set('phone', e.target.value)} />
+              <InputText
+                value={form.phone}
+                onChange={(e) => handleChange('phone', e.target.value)}
+              />
             </div>
-            {form.signatureUrl && (
-              <div className="field" style={{ gridColumn: '1 / span 2' }}>
-                <label>Signature preview</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <img src={form.signatureUrl} alt="signature" style={{ height: 48 }} />
-            </div>
+          </div>
+        </div>
+
+        <div className="form-section">
+          <h3>Media & Files</h3>
+          <div className="form-grid-2">
+            <div className="form-field">
+              <label>Logo URL</label>
+              <InputText
+                value={form.logoUrl}
+                onChange={(e) => handleChange('logoUrl', e.target.value)}
+              />
+              <div className="file-upload">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload(file, 'logo');
+                  }}
+                  className="file-input"
+                />
+                {uploadingLogo && <div className="upload-status">Uploading logo...</div>}
               </div>
-            )}
+            </div>
+            <div className="form-field">
+              <label>Signature URL</label>
+              <InputText
+                value={form.signatureUrl}
+                onChange={(e) => handleChange('signatureUrl', e.target.value)}
+              />
+              <div className="file-upload">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload(file, 'signature');
+                  }}
+                  className="file-input"
+                />
+                {uploadingSignature && <div className="upload-status">Uploading signature...</div>}
+              </div>
+            </div>
           </div>
+        </div>
 
-          {error && <Message severity="error" text={error} />}
-          {success && <Message severity="success" text={success} />}
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-            <Button type="submit" label="Save profile" loading={loading || initialLoading} disabled={loading || initialLoading} />
+        <div className="form-section">
+          <h3>Payment Information</h3>
+          <div className="form-grid-3">
+            <div className="form-field">
+              <label>Swift Code</label>
+              <InputText
+                value={form.swiftCode}
+                onChange={(e) => handleChange('swiftCode', e.target.value)}
+                placeholder="SWIFT code for international transfers"
+              />
+            </div>
+            <div className="form-field">
+              <label>IBAN</label>
+              <InputText
+                value={form.iban}
+                onChange={(e) => handleChange('iban', e.target.value)}
+                placeholder="International Bank Account Number"
+              />
+            </div>
+            <div className="form-field">
+              <label>Card Number</label>
+              <InputText
+                value={form.cardNumber}
+                onChange={(e) => handleChange('cardNumber', e.target.value)}
+                placeholder="Card number for payments"
+              />
+            </div>
           </div>
-        </form>
+        </div>
+
+        <div className="profile-actions">
+          <Button 
+            label="Change Password" 
+            icon="pi pi-key" 
+            className="password-btn"
+            onClick={() => setPasswordDialog(true)}
+          />
+          <Button 
+            label="Save" 
+            loading={loading} 
+            onClick={saveProfile}
+            className="save-btn"
+          />
+        </div>
       </Card>
+
+      <Dialog 
+        header="Change Password"
+        visible={passwordDialog}
+        onHide={() => setPasswordDialog(false)}
+        className="password-dialog"
+        style={{ width: '400px' }}
+      >
+        <div className="dialog-form">
+          {passwordError && <Message severity="error" text={passwordError} />}
+          
+          <div className="dialog-field">
+            <label>Current Password:</label>
+            <Password 
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter current password"
+              style={{ width: '100%' }}
+            />
+          </div>
+          
+          <div className="dialog-field">
+            <label>New Password:</label>
+            <Password 
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Enter new password"
+              style={{ width: '100%' }}
+            />
+          </div>
+          
+          <div className="dialog-field">
+            <label>Confirm New Password:</label>
+            <Password 
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm new password"
+              style={{ width: '100%' }}
+            />
+          </div>
+          
+          <div className="dialog-actions">
+            <Button 
+              label="Cancel" 
+              severity="secondary" 
+              onClick={() => setPasswordDialog(false)}
+              outlined 
+            />
+            <Button 
+              label="Change Password" 
+              icon="pi pi-key"
+              onClick={changePassword}
+              loading={changingPassword}
+            />
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 };
 
-export default Profile; 
+export default Profile;

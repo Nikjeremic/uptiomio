@@ -28,7 +28,9 @@ const CreateInvoice: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState<Date | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState('');
+  const [swiftCode, setSwiftCode] = useState('');
+  const [iban, setIban] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState<Date | null>(null);
   const [loading, setLoading] = useState(false);
@@ -41,6 +43,20 @@ const CreateInvoice: React.FC = () => {
         const { data } = await userAPI.getAllUsers();
         const opts = data.map((u: any) => ({ label: `${u.name} (${u.email})`, value: u._id || u.id, email: u.email }));
         setUserOptions(opts);
+      } catch (e) {
+        // ignore silently
+      }
+    })();
+  }, []);
+
+  // Load issuer profile data on component mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: issuerProfile } = await profileAPI.get();
+        setSwiftCode(issuerProfile.swiftCode || '');
+        setIban(issuerProfile.iban || '');
+        setCardNumber(issuerProfile.cardNumber || '');
       } catch (e) {
         // ignore silently
       }
@@ -64,15 +80,6 @@ const CreateInvoice: React.FC = () => {
     })();
   }, [clientUserId, userOptions]);
 
-  const paymentMethods = [
-    { label: 'Payoneer', value: 'Payoneer' },
-    { label: 'Western Union', value: 'Western Union' },
-    { label: 'Zelle', value: 'Zelle' },
-    { label: 'Credit Card', value: 'Credit Card' },
-    { label: 'Authorize.net', value: 'Authorize.net' },
-    { label: 'Paypal', value: 'Paypal' }
-  ];
-
   const addItem = () => setItems((prev) => [...prev, { description: '', quantity: 1, unitPrice: 0 }]);
   const removeItem = (idx: number) => setItems((prev) => prev.filter((_, i) => i !== idx));
   const setItem = (idx: number, key: keyof ItemRow, value: any) => setItems((prev) => prev.map((it, i) => i === idx ? { ...it, [key]: value } : it));
@@ -93,19 +100,37 @@ const CreateInvoice: React.FC = () => {
         reminderMinute = reminderTime.getMinutes();
       }
 
+      // Get issuer profile data
+      const { data: issuerProfile } = await profileAPI.get();
+      
       await invoiceAPI.createInvoice({
+        // Issuer data from profile
+        issuerName: issuerProfile.fullName || "Uptimio",
+        issuerCompany: issuerProfile.companyName || "Uptimio",
+        issuerAddress: issuerProfile.addressLine || "",
+        issuerCountry: issuerProfile.country || "",
+        issuerPhone: issuerProfile.phone || "",
+        issuerLogoUrl: issuerProfile.logoUrl || "",
+        issuerSignatureUrl: issuerProfile.signatureUrl || "",
+        issuerSwiftCode: swiftCode,
+        issuerIban: iban,
+        issuerCardNumber: cardNumber,
+        
+        // Client data
         clientName,
         clientEmail,
         clientCompany,
         clientAddress,
         clientCountry,
         clientPhone,
+        
+        // Invoice data
         items: items.map(i => ({ description: i.description, quantity: i.quantity || 0, unitPrice: i.unitPrice || 0 })),
-        currency: 'USD',
+        amount: total,
+        currency: "USD",
         notes,
         description,
         dueDate,
-        paymentMethod,
         reminderEnabled,
         reminderIntervalDays: reminderEnabled ? 1 : 7,
         ...(reminderHour !== undefined && reminderMinute !== undefined ? { reminderHour, reminderMinute } : {})
@@ -124,7 +149,6 @@ const CreateInvoice: React.FC = () => {
       setNotes('');
       setDescription('');
       setDueDate(null);
-      setPaymentMethod('');
       setReminderEnabled(false);
       setReminderTime(null);
     } catch (error: any) {
@@ -248,18 +272,45 @@ const CreateInvoice: React.FC = () => {
               <InputTextarea value={notes} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value)} className="form-input" placeholder="Payment notes, bank details, etc." rows={3} />
             </div>
 
-            <div className="form-group full-width">
-              <label htmlFor="paymentMethod" className="form-label">
+            <div className="form-group">
+              <label className="form-label">
                 <i className="pi pi-credit-card"></i>
-                Suggested payment method
+                Swift Code
               </label>
-              <Dropdown
-                id="paymentMethod"
-                value={paymentMethod}
-                options={paymentMethods}
-                onChange={(e) => setPaymentMethod(e.value)}
+              <InputText
+                value={swiftCode}
                 className="form-input"
-                placeholder="Optional"
+                placeholder="Swift code from profile"
+                disabled
+                style={{ backgroundColor: '#f9f9f9', color: '#666' }}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">
+                <i className="pi pi-credit-card"></i>
+                IBAN
+              </label>
+              <InputText
+                value={iban}
+                className="form-input"
+                placeholder="IBAN from profile"
+                disabled
+                style={{ backgroundColor: '#f9f9f9', color: '#666' }}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">
+                <i className="pi pi-credit-card"></i>
+                Card Number
+              </label>
+              <InputText
+                value={cardNumber}
+                className="form-input"
+                placeholder="Card number from profile"
+                disabled
+                style={{ backgroundColor: '#f9f9f9', color: '#666' }}
               />
             </div>
 
