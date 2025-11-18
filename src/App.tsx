@@ -13,10 +13,11 @@ const AppContent: React.FC = () => {
 
   const params = new URLSearchParams(window.location.search);
   const invoiceId = params.get('invoiceId');
-  if (invoiceId && user) {
+  
+  // Allow invoice view without login (public access from email links)
+  if (invoiceId) {
     return <InvoiceView />;
   }
-
 
   if (user) {
     return <Dashboard />;

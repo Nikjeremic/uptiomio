@@ -1,7 +1,8 @@
 {
   "files": {
-    "main.css": "/static/css/main.cadda3d5.css",
-    "main.js": "/static/js/main.b3a6bb09.js",
+    "main.css": "/static/css/main.110b9dd2.css",
+    "main.js": "/static/js/main.d498d280.js",
+    "static/js/884.84c4bec3.chunk.js": "/static/js/884.84c4bec3.chunk.js",
     "static/media/primeicons.svg": "/static/media/primeicons.e1441b135b3ca9ad643c.svg",
     "static/media/primeicons.eot": "/static/media/primeicons.d44157bdfa026dc877af.eot",
     "static/media/primeicons.woff": "/static/media/primeicons.10d3152104f2208ac82a.woff",
@@ -11,11 +12,12 @@
     "static/media/Jeremic Nikola Signature.png": "/static/media/Jeremic Nikola Signature.54d2a4e21e9bbb4fbd15.png",
     "static/media/color.png": "/static/media/color.6441e63a57ccc5105bad.png",
     "index.html": "/index.html",
-    "main.cadda3d5.css.map": "/static/css/main.cadda3d5.css.map",
-    "main.b3a6bb09.js.map": "/static/js/main.b3a6bb09.js.map"
+    "main.110b9dd2.css.map": "/static/css/main.110b9dd2.css.map",
+    "main.d498d280.js.map": "/static/js/main.d498d280.js.map",
+    "884.84c4bec3.chunk.js.map": "/static/js/884.84c4bec3.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.cadda3d5.css",
-    "static/js/main.b3a6bb09.js"
+    "static/css/main.110b9dd2.css",
+    "static/js/main.d498d280.js"
   ]
 }

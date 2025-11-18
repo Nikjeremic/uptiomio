@@ -11,6 +11,32 @@ const fs = require('fs');
 const path = require('path');
 const cron = require('node-cron');
 
+// Security packages
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const { body, validationResult } = require('express-validator');
+const mongoSanitize = require('express-mongo-sanitize');
+const winston = require('winston');
+
+// Winston logger configuration
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' }),
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      )
+    })
+  ],
+});
+
 // Counter for sequences (e.g., invoice numbers)
 const counterSchema = new mongoose.Schema({
   key: { type: String, required: true, unique: true },
@@ -31,9 +57,104 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const EMAIL_VERIFICATION_ENABLED = process.env.EMAIL_VERIFICATION_ENABLED !== 'false';
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Security: Validate critical environment variables
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET === 'your-secret-key') {
+  logger.error('CRITICAL: JWT_SECRET not set or using default value!');
+  console.error('Please set a strong JWT_SECRET in your .env file');
+  process.exit(1);
+}
+
+// Security Middleware
+// Helmet - Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'", "https://unpkg.com"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  },
+}));
+
+// MongoDB injection protection
+app.use(mongoSanitize({
+  replaceWith: '_',
+  onSanitize: ({ req, key }) => {
+    logger.warn(`Sanitized ${key} in ${req.originalUrl}`);
+  },
+}));
+
+// CORS - Allow production and development origins
+const corsOptions = {
+  origin: [
+    'https://payments.uptimio.com',
+    'http://localhost:3000',
+    'http://localhost:4000',
+    'http://localhost:5001',
+    'http://localhost:5002',
+    'http://localhost:5003'
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
+// JSON parser with size limit
+app.use(express.json({ limit: '10mb' }));
+
+// Trust proxy - needed for rate limiting and X-Forwarded-For headers
+app.set('trust proxy', 1);
+
+// HTTPS enforcement in production
+// Only redirect if request came from external (has x-forwarded-proto header)
+// Don't redirect localhost requests from reverse proxy
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    const proto = req.header('x-forwarded-proto');
+    const host = req.header('host');
+    
+    // Only redirect if we have x-forwarded-proto and it's not https
+    // Skip localhost requests from reverse proxy
+    if (proto && proto !== 'https' && host && !host.includes('localhost')) {
+      return res.redirect(`https://${host}${req.url}`);
+    }
+    next();
+  });
+}
+
+// Rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 login attempts
+  message: 'Too many login attempts, please try again after 15 minutes',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // Don't count successful logins
+});
+
+// Apply rate limiting to API routes
+app.use('/api/', apiLimiter);
+
 // Static serve uploads
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -41,7 +162,7 @@ if (!fs.existsSync(uploadsDir)) {
 }
 app.use('/uploads', express.static(uploadsDir));
 
-// Multer storage
+// Multer storage with enhanced security
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadsDir);
@@ -52,10 +173,40 @@ const storage = multer.diskStorage({
     cb(null, unique + '-' + safeName);
   }
 });
-const upload = multer({ storage });
+
+// File filter for security
+const fileFilter = (req, file, cb) => {
+  // Allowed MIME types
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+  
+  if (!allowedTypes.includes(file.mimetype)) {
+    logger.warn('Invalid file type upload attempt', { 
+      mimetype: file.mimetype, 
+      filename: file.originalname,
+      ip: req.ip 
+    });
+    return cb(new Error('Invalid file type. Only JPEG, PNG and WEBP images are allowed.'), false);
+  }
+  
+  cb(null, true);
+};
+
+const upload = multer({ 
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB max
+    files: 1 // One file per request
+  }
+});
 
 // MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://uptime_User97_Masteradmin:SrD6z6JD2I198Ubv@uptimecluster.oghidga.mongodb.net/?retryWrites=true&w=majority&appName=UptimeCluster';
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  logger.error('CRITICAL: MONGODB_URI not set in environment variables!');
+  console.error('Please set MONGODB_URI in your .env file');
+  process.exit(1);
+}
 
 mongoose.connect(MONGODB_URI)
   .then(() => console.log('Connected to MongoDB'))
@@ -69,8 +220,52 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   isVerified: { type: Boolean, default: false },
   verificationToken: { type: String, default: null },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  // Security: Account lockout fields
+  loginAttempts: { type: Number, default: 0 },
+  lockUntil: { type: Date },
+  // Security: Refresh token
+  refreshToken: { type: String, default: null },
 });
+
+// Virtual for checking if account is locked
+userSchema.virtual('isLocked').get(function() {
+  return !!(this.lockUntil && this.lockUntil > Date.now());
+});
+
+// Method to increment failed login attempts
+userSchema.methods.incLoginAttempts = function() {
+  // Reset if lock has expired
+  if (this.lockUntil && this.lockUntil < Date.now()) {
+    return this.updateOne({
+      $set: { loginAttempts: 1 },
+      $unset: { lockUntil: 1 }
+    });
+  }
+  
+  const updates = { $inc: { loginAttempts: 1 } };
+  const maxAttempts = 5;
+  const lockTime = 2 * 60 * 60 * 1000; // 2 hours lockout
+  
+  // Lock account after max attempts
+  if (this.loginAttempts + 1 >= maxAttempts && !this.isLocked) {
+    updates.$set = { lockUntil: Date.now() + lockTime };
+    logger.warn('Account locked due to failed login attempts', {
+      email: this.email,
+      attempts: this.loginAttempts + 1
+    });
+  }
+  
+  return this.updateOne(updates);
+};
+
+// Method to reset login attempts on successful login
+userSchema.methods.resetLoginAttempts = function() {
+  return this.updateOne({
+    $set: { loginAttempts: 0 },
+    $unset: { lockUntil: 1 }
+  });
+};
 
 const User = mongoose.model('User', userSchema);
 
@@ -90,6 +285,25 @@ const userProfileSchema = new mongoose.Schema({
   swiftCode: { type: String, default: '' },
   iban: { type: String, default: '' },
   cardNumber: { type: String, default: '' },
+  // New payment instruction fields
+  bankName: { type: String, default: '' },
+  // Correspondent banks (up to 5)
+  correspondentBank1: { type: String, default: '' },
+  correspondentBank2: { type: String, default: '' },
+  correspondentBank3: { type: String, default: '' },
+  correspondentBank4: { type: String, default: '' },
+  correspondentBank5: { type: String, default: '' },
+  correspondentCountry1: { type: String, default: '' },
+  correspondentCountry2: { type: String, default: '' },
+  correspondentCountry3: { type: String, default: '' },
+  correspondentCountry4: { type: String, default: '' },
+  correspondentCountry5: { type: String, default: '' },
+  correspondentSwift1: { type: String, default: '' },
+  correspondentSwift2: { type: String, default: '' },
+  correspondentSwift3: { type: String, default: '' },
+  correspondentSwift4: { type: String, default: '' },
+  correspondentSwift5: { type: String, default: '' },
+  paymentInstructions: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
@@ -114,12 +328,32 @@ const invoiceSchema = new mongoose.Schema({
   issuerCompany: { type: String, default: '' },
   issuerAddress: { type: String, default: '' },
   issuerCountry: { type: String, default: '' },
+  issuerZipCode: { type: String, default: '' },
   issuerPhone: { type: String, default: '' },
   issuerLogoUrl: { type: String, default: '' },
   issuerSignatureUrl: { type: String, default: '' },
   issuerSwiftCode: { type: String, default: '' },
   issuerIban: { type: String, default: '' },
   issuerCardNumber: { type: String, default: '' },
+  // New payment instruction fields
+  issuerBankName: { type: String, default: '' },
+  // Correspondent banks (up to 5)
+  issuerCorrespondentBank1: { type: String, default: '' },
+  issuerCorrespondentBank2: { type: String, default: '' },
+  issuerCorrespondentBank3: { type: String, default: '' },
+  issuerCorrespondentBank4: { type: String, default: '' },
+  issuerCorrespondentBank5: { type: String, default: '' },
+  issuerCorrespondentCountry1: { type: String, default: '' },
+  issuerCorrespondentCountry2: { type: String, default: '' },
+  issuerCorrespondentCountry3: { type: String, default: '' },
+  issuerCorrespondentCountry4: { type: String, default: '' },
+  issuerCorrespondentCountry5: { type: String, default: '' },
+  issuerCorrespondentSwift1: { type: String, default: '' },
+  issuerCorrespondentSwift2: { type: String, default: '' },
+  issuerCorrespondentSwift3: { type: String, default: '' },
+  issuerCorrespondentSwift4: { type: String, default: '' },
+  issuerCorrespondentSwift5: { type: String, default: '' },
+  issuerPaymentInstructions: { type: String, default: '' },
 
   // Client
   clientName: { type: String, required: true },
@@ -127,6 +361,7 @@ const invoiceSchema = new mongoose.Schema({
   clientCompany: { type: String, default: '' },
   clientAddress: { type: String, default: '' },
   clientCountry: { type: String, default: '' },
+  clientZipCode: { type: String, default: '' },
   clientPhone: { type: String, default: '' },
 
   // Items and totals
@@ -362,6 +597,39 @@ async function sendInvoiceReminderEmail(toEmail, invoiceId, clientName, logoUrl,
   }
 }
 
+async function sendPaymentConfirmationEmail(toEmail, invoiceId, clientName, logoUrl, signatureUrl) {
+  try {
+    const basePreference = (process.env.FRONTEND_BASE_URL || process.env.BACKEND_BASE_URL || 'https://payments.uptimio.com').replace(/\/$/, '');
+    const viewUrl = `${basePreference}/?invoiceId=${encodeURIComponent(String(invoiceId))}`;
+    const html = baseEmailTemplate({
+      title: 'Payment Confirmation - Thank You!',
+      intro: `Hello${clientName ? ' ' + clientName : ''},<br><br>Thank you for your payment! Your invoice has been successfully marked as paid.<br><br>You can view your paid invoice and download a receipt using the link below:<br><br>We appreciate your business and prompt payment.`,
+      actionUrl: viewUrl,
+      actionLabel: 'View Paid Invoice',
+      footer: 'Thank you for your payment and for choosing Uptimio services.',
+      logoUrl: logoUrl || process.env.MAIL_LOGO_URL || '/uploads/uptimioInvoice.jpg',
+      signatureUrl: signatureUrl || process.env.MAIL_SIGNATURE_URL || ''
+    });
+
+    if (!process.env.SMTP_HOST) {
+      console.log('[DEV] Payment confirmation link:', viewUrl);
+      return { devLink: viewUrl };
+    }
+
+    const info = await transporter.sendMail({
+      from: process.env.MAIL_FROM || 'no-reply@uptiomio.local',
+      to: toEmail,
+      subject: 'Uptimio Payment Services - Payment Confirmation',
+      html,
+    });
+    console.log('Payment confirmation email sent:', { messageId: info.messageId, to: toEmail, invoiceId });
+    return { messageId: info.messageId };
+  } catch (err) {
+    console.error('Payment confirmation email error (non-fatal):', err);
+    return { error: err.message || 'send_failed' };
+  }
+}
+
 // Daily reminder for users with 2+ overdue invoices
 async function sendDailyOverdueReminderEmail(toEmail, clientName, overdueInvoices, logoUrl, signatureUrl) {
   try {
@@ -533,8 +801,13 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ message: 'Access token required' });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', (err, user) => {
+  jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
+      if (err.name === 'TokenExpiredError') {
+        logger.warn('Expired token used', { ip: req.ip });
+        return res.status(403).json({ message: 'Token expired. Please login again.' });
+      }
+      logger.warn('Invalid token used', { ip: req.ip, error: err.message });
       return res.status(403).json({ message: 'Invalid token' });
     }
     req.user = user;
@@ -577,26 +850,42 @@ app.get('/api/profile', authenticateToken, async (req, res) => {
 app.put('/api/profile', authenticateToken, async (req, res) => {
   try {
     const update = req.body || {};
+    console.log('Profile update received:', JSON.stringify(update, null, 2));
     const profile = await UserProfile.findOneAndUpdate(
       { userId: req.user.userId },
       { $set: { ...update, updatedAt: new Date() } },
       { new: true, upsert: true }
     );
+    console.log('Profile saved:', JSON.stringify(profile, null, 2));
     res.json(profile);
   } catch (error) {
+    console.error('Profile update error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
 
 // Change user password
-app.post('/api/profile/change-password', authenticateToken, async (req, res) => {
+// Change password with validation
+app.post('/api/profile/change-password', [
+  authenticateToken,
+  body('currentPassword')
+    .notEmpty()
+    .withMessage('Current password is required'),
+  body('newPassword')
+    .isLength({ min: 8 })
+    .withMessage('New password must be at least 8 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('New password must contain at least one uppercase letter, one lowercase letter, and one number'),
+], async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
-    
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ message: 'Current password and new password are required' });
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
+
+    const { currentPassword, newPassword } = req.body;
     
     if (newPassword.length < 6) {
       return res.status(400).json({ message: 'New password must be at least 6 characters' });
@@ -684,8 +973,30 @@ app.post('/api/users/:id/profile/logo', authenticateToken, upload.single('file')
 });
 
 // Register
-app.post('/api/register', async (req, res) => {
+// Register with input validation
+app.post('/api/register', [
+  loginLimiter,
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Invalid email format'),
+  body('password')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
+  body('name')
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Name must be between 2 and 100 characters'),
+], async (req, res) => {
   try {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
     const { email, password, name, role } = req.body;
     
     // Check if user already exists
@@ -734,15 +1045,92 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
+// Logout endpoint
+app.post('/api/logout', authenticateToken, async (req, res) => {
+  try {
+    // Invalidate refresh token
+    await User.findByIdAndUpdate(req.user.userId, { refreshToken: null });
+    
+    logger.info('User logged out', { userId: req.user.userId });
+    
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    logger.error('Logout error', { error: error.message });
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Refresh token endpoint
+app.post('/api/refresh-token', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: 'Refresh token required' });
+    }
+
+    // Verify refresh token
+    jwt.verify(refreshToken, JWT_SECRET, async (err, decoded) => {
+      if (err) {
+        logger.warn('Invalid refresh token used', { ip: req.ip });
+        return res.status(403).json({ message: 'Invalid refresh token' });
+      }
+
+      // Find user and check if refresh token matches
+      const user = await User.findById(decoded.userId);
+      if (!user || user.refreshToken !== refreshToken) {
+        logger.warn('Refresh token mismatch', { userId: decoded.userId });
+        return res.status(403).json({ message: 'Invalid refresh token' });
+      }
+
+      // Generate new access token
+      const newAccessToken = jwt.sign(
+        { userId: user._id, email: user.email, role: user.role },
+        JWT_SECRET,
+        { expiresIn: '15m' }
+      );
+
+      // Generate new refresh token (token rotation)
+      const newRefreshToken = jwt.sign(
+        { userId: user._id },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      // Update refresh token in database
+      await User.findByIdAndUpdate(user._id, { refreshToken: newRefreshToken });
+
+      logger.info('Token refreshed', { userId: user._id });
+
+      res.json({
+        token: newAccessToken,
+        refreshToken: newRefreshToken
+      });
+    });
+  } catch (error) {
+    logger.error('Refresh token error', { error: error.message });
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Login
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
     // Find user
     const user = await User.findOne({ email });
     if (!user) {
+      logger.warn('Login attempt with non-existent email', { email, ip: req.ip });
       return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if account is locked
+    if (user.isLocked) {
+      logger.warn('Login attempt on locked account', { email, ip: req.ip });
+      return res.status(403).json({ 
+        message: 'Account temporarily locked due to multiple failed login attempts. Please try again later or contact support.' 
+      });
     }
 
     if (EMAIL_VERIFICATION_ENABLED && !user.isVerified) {
@@ -752,22 +1140,44 @@ app.post('/api/login', async (req, res) => {
     // Check password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
+      // Increment failed attempts
+      await user.incLoginAttempts();
+      logger.warn('Failed login attempt', { email, ip: req.ip, attempts: user.loginAttempts + 1 });
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // Generate JWT
-    const token = jwt.sign(
+    // Reset login attempts on successful login
+    if (user.loginAttempts > 0) {
+      await user.resetLoginAttempts();
+    }
+
+    // Generate access token (short-lived)
+    const accessToken = jwt.sign(
       { userId: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '24h' }
+      JWT_SECRET,
+      { expiresIn: '15m' }
     );
+
+    // Generate refresh token (long-lived)
+    const refreshToken = jwt.sign(
+      { userId: user._id },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Save refresh token to database
+    await User.findByIdAndUpdate(user._id, { refreshToken });
+
+    logger.info('Successful login', { userId: user._id, email: user.email, role: user.role });
 
     res.json({
       message: 'Login successful',
-      token,
+      token: accessToken,
+      refreshToken,
       user: { id: user._id, email: user.email, name: user.name, role: user.role }
     });
   } catch (error) {
+    logger.error('Login error', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -802,17 +1212,13 @@ app.get('/api/invoices', authenticateToken, async (req, res) => {
   }
 });
 
-// Get invoice by id
-app.get('/api/invoices/:id', authenticateToken, async (req, res) => {
+// Get invoice by id (PUBLIC - no auth required for invoice links from emails)
+app.get('/api/invoices/:id', async (req, res) => {
   try {
     const invoice = await Invoice.findById(req.params.id);
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
 
-    // Allow creator or admin or invoice client (by email)
-    const isCreator = String(invoice.createdBy) === req.user.userId;
-    if (!isCreator && req.user.role !== 'admin' && invoice.clientEmail !== req.user.email) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
+    // Public access - anyone with the invoice ID can view it
     res.json(invoice);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -839,25 +1245,90 @@ app.get('/api/my-invoices', authenticateToken, async (req, res) => {
 });
 
 // Create invoice (admin only)
-app.post('/api/invoices', authenticateToken, async (req, res) => {
+// Create invoice with validation
+app.post('/api/invoices', [
+  authenticateToken,
+  body('clientEmail')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Invalid client email format'),
+  body('clientName')
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Client name must be between 2 and 100 characters'),
+  body('amount')
+    .isFloat({ min: 0.01 })
+    .toFloat()
+    .withMessage('Amount must be a positive number'),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('Description must not exceed 1000 characters'),
+  body('dueDate')
+    .notEmpty()
+    .withMessage('Due date is required')
+    .isISO8601()
+    .withMessage('Invalid date format'),
+], async (req, res) => {
   try {
+    // Check if user is admin
+    if (req.user.role !== 'admin') {
+      console.log('Non-admin user attempted to create invoice:', req.user.email);
+      return res.status(403).json({ message: 'Admin access required to create invoices' });
+    }
+
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array());
+      logger.error('Invoice validation failed', { errors: errors.array() });
+      return res.status(400).json({ errors: errors.array() });
+    }
+
     const {
-      issuerName, issuerCompany, issuerAddress, issuerCountry, issuerPhone,
+      issuerName, issuerCompany, issuerAddress, issuerCountry, issuerZipCode, issuerPhone,
       issuerLogoUrl, issuerSignatureUrl, issuerSwiftCode, issuerIban, issuerCardNumber,
-      clientName, clientEmail, clientCompany, clientAddress, clientCountry, clientPhone,
+      clientName, clientEmail, clientCompany, clientAddress, clientCountry, clientZipCode, clientPhone,
       items, amount, currency, notes, description, dueDate,
       reminderEnabled, reminderHour, reminderMinute
     } = req.body;
+    
+    console.log('Invoice creation request:', { clientName, clientEmail, amount, dueDate, itemCount: items?.length });
+
+    // Get user profile for additional payment information
+    const userProfile = await UserProfile.findOne({ userId: req.user.userId });
+    console.log('Creating invoice - User profile found:', !!userProfile);
 
     // Generate invoice number
     const lastInvoice = await Invoice.findOne({}, {}, { sort: { invoiceNumber: -1 } });
     const invoiceNumber = lastInvoice ? lastInvoice.invoiceNumber + 1 : 1;
     const invoiceNumberStr = `INV-${invoiceNumber.toString().padStart(6, '0')}`;
+    console.log('Generated invoice number:', invoiceNumber, invoiceNumberStr);
 
     const invoice = new Invoice({
-      issuerName, issuerCompany, issuerAddress, issuerCountry, issuerPhone,
+      issuerName, issuerCompany, issuerAddress, issuerCountry, issuerZipCode, issuerPhone,
       issuerLogoUrl, issuerSignatureUrl, issuerSwiftCode, issuerIban, issuerCardNumber,
-      clientName, clientEmail, clientCompany, clientAddress, clientCountry, clientPhone,
+      // Copy new payment fields from profile if available
+      issuerBankName: userProfile?.bankName || '',
+      // Copy correspondent banks (up to 5)
+      issuerCorrespondentBank1: userProfile?.correspondentBank1 || '',
+      issuerCorrespondentBank2: userProfile?.correspondentBank2 || '',
+      issuerCorrespondentBank3: userProfile?.correspondentBank3 || '',
+      issuerCorrespondentBank4: userProfile?.correspondentBank4 || '',
+      issuerCorrespondentBank5: userProfile?.correspondentBank5 || '',
+      issuerCorrespondentCountry1: userProfile?.correspondentCountry1 || '',
+      issuerCorrespondentCountry2: userProfile?.correspondentCountry2 || '',
+      issuerCorrespondentCountry3: userProfile?.correspondentCountry3 || '',
+      issuerCorrespondentCountry4: userProfile?.correspondentCountry4 || '',
+      issuerCorrespondentCountry5: userProfile?.correspondentCountry5 || '',
+      issuerCorrespondentSwift1: userProfile?.correspondentSwift1 || '',
+      issuerCorrespondentSwift2: userProfile?.correspondentSwift2 || '',
+      issuerCorrespondentSwift3: userProfile?.correspondentSwift3 || '',
+      issuerCorrespondentSwift4: userProfile?.correspondentSwift4 || '',
+      issuerCorrespondentSwift5: userProfile?.correspondentSwift5 || '',
+      issuerPaymentInstructions: userProfile?.paymentInstructions || '',
+      clientName, clientEmail, clientCompany, clientAddress, clientCountry, clientZipCode, clientPhone,
       items, amount, currency, notes, description, dueDate,
       reminderEnabled, reminderHour, reminderMinute,
       invoiceNumber, invoiceNumberStr,
@@ -870,6 +1341,8 @@ app.post('/api/invoices', authenticateToken, async (req, res) => {
     sendInvoiceCreatedEmail(clientEmail, invoice._id, clientName, issuerLogoUrl, issuerSignatureUrl);
     res.status(201).json(invoice);
   } catch (error) {
+    console.error('Invoice creation error:', error);
+    logger.error('Invoice creation failed', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -903,8 +1376,8 @@ app.patch('/api/invoices/:id/pay', authenticateToken, async (req, res) => {
 
     await invoice.save();
 
-    // Send email to client with view link
-    sendInvoiceCreatedEmail(clientEmail, invoice._id, clientName, issuerLogoUrl, issuerSignatureUrl);
+    // Send payment confirmation email to client
+    sendPaymentConfirmationEmail(invoice.clientEmail, invoice._id, invoice.clientName, invoice.issuerLogoUrl, invoice.issuerSignatureUrl);
     res.json(invoice);
   } catch (error) {
     if (error?.name === 'CastError') {
@@ -1203,41 +1676,75 @@ app.get('/api/users/:id/profile', authenticateToken, async (req, res) => {
 app.put('/api/users/:id/profile', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+    console.log('\n\n=== ADMIN PROFILE UPDATE REQUEST ===');
+    console.log('User ID:', id);
+    console.log('Requesting user role:', req.user.role);
+    console.log('Request body KEYS:', Object.keys(req.body));
+    console.log('Request body FULL:', JSON.stringify(req.body, null, 2));
+    
+    // Check specifically for new fields
+    console.log('\n=== CHECKING NEW FIELDS IN REQUEST ===');
+    console.log('bankName:', req.body.bankName);
+    console.log('correspondentBank1:', req.body.correspondentBank1);
+    console.log('correspondentSwift1:', req.body.correspondentSwift1);
+    console.log('paymentInstructions:', req.body.paymentInstructions);
+    
     if (req.user.role !== 'admin' && req.user.userId !== id) {
       return res.status(403).json({ message: 'Access denied' });
     }
+    
     const update = req.body || {};
+    
+    console.log('\n=== UPDATE OBJECT KEYS ===');
+    console.log('Update keys:', Object.keys(update));
+    
     const profile = await UserProfile.findOneAndUpdate(
       { userId: id },
       { $set: { ...update, updatedAt: new Date() } },
       { upsert: true, new: true }
     );
+    
+    console.log('\n=== PROFILE SAVED TO DB ===');
+    console.log('Profile keys:', Object.keys(profile.toObject()));
+    console.log('Profile bankName from DB:', profile.bankName);
+    console.log('Profile correspondentBank1 from DB:', profile.correspondentBank1);
+    console.log('Profile FULL:', JSON.stringify(profile, null, 2));
+    console.log('=== END ADMIN PROFILE UPDATE ===\n\n');
+    
     res.json(profile);
   } catch (error) {
+    console.error('Profile update error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-// Verify email
+// Verify email - redirect to frontend with message
 app.get('/api/verify', async (req, res) => {
   try {
     const { token } = req.query;
     if (!token || typeof token !== 'string') {
-      return res.status(400).json({ message: 'Invalid verification token' });
+      // Redirect to frontend with error
+      const frontendUrl = (process.env.FRONTEND_BASE_URL || process.env.BACKEND_BASE_URL || 'https://payments.uptimio.com').replace(/\/$/, '');
+      return res.redirect(`${frontendUrl}/?verified=error&message=${encodeURIComponent('Invalid verification token')}`);
     }
 
     const user = await User.findOne({ verificationToken: token });
     if (!user) {
-      return res.status(400).json({ message: 'Verification token not found or already used' });
+      // Redirect to frontend with error
+      const frontendUrl = (process.env.FRONTEND_BASE_URL || process.env.BACKEND_BASE_URL || 'https://payments.uptimio.com').replace(/\/$/, '');
+      return res.redirect(`${frontendUrl}/?verified=error&message=${encodeURIComponent('Verification token not found or already used')}`);
     }
 
     user.isVerified = true;
     user.verificationToken = null;
     await user.save();
 
-    res.json({ message: 'Email successfully verified. You can now log in.' });
+    // Redirect to frontend with success
+    const frontendUrl = (process.env.FRONTEND_BASE_URL || process.env.BACKEND_BASE_URL || 'https://payments.uptimio.com').replace(/\/$/, '');
+    res.redirect(`${frontendUrl}/?verified=success`);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    const frontendUrl = (process.env.FRONTEND_BASE_URL || process.env.BACKEND_BASE_URL || 'https://payments.uptimio.com').replace(/\/$/, '');
+    res.redirect(`${frontendUrl}/?verified=error&message=${encodeURIComponent('Server error')}`);
   }
 });
 
@@ -1359,6 +1866,27 @@ cron.schedule('0 9 * * *', async () => {
   await checkAndSendOverdueReminders();
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// ==========================================
+// SERVE REACT BUILD IN PRODUCTION
+// ==========================================
+if (process.env.NODE_ENV === 'production') {
+  // Serve static files from root directory (build files are in root on production server)
+  app.use(express.static(__dirname));
+
+  // All other GET requests not handled will return React app
+  // This MUST be after all API routes
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+  });
+  
+  console.log('Serving React build from root directory:', __dirname);
+}
+
+// Listen on 0.0.0.0 to allow reverse proxy access
+// LiteSpeed/Apache will proxy requests from external to this port
+const HOST = '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+  console.log(`Server running on ${HOST}:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

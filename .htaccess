@@ -1,0 +1,38 @@
+# Disable Passenger
+PassengerEnabled off
+
+# Node.js Reverse Proxy Configuration for LiteSpeed
+RewriteEngine On
+
+# WebSocket support
+RewriteCond %{HTTP:Upgrade} =websocket [NC]
+RewriteRule /(.*)           ws://127.0.0.1:5000/$1 [P,L]
+
+# HTTP proxy - route all requests to Node.js
+RewriteCond %{HTTP:Upgrade} !=websocket [NC]
+RewriteRule ^(.*)$ http://127.0.0.1:5000/$1 [P,L]
+
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION BEGIN
+<IfModule Litespeed>
+SetEnv ADMIN_EMAIL nikjeremic@uptimio.com
+SetEnv BACKEND_BASE_URL https://payments.uptimio.com
+SetEnv EMAIL_VERIFICATION_ENABLED false
+SetEnv FRONTEND_BASE_URL https://payments.uptimio.com
+SetEnv JWT_SECRET a3e7caa376581f0a56906085e35347ac14cec902c7c636551cce52c71e46fd82e9a3dde6475104d0cac5d63eb3e91b96dc943056dbb5c5a199142895219006ca
+SetEnv MAIL_FROM invoices@uptimio.com
+SetEnv MONGODB_URI mongodb+srv://uptime_User97_Masteradmin:SrD6z6JD2I198Ubv@uptimecluster.oghidga.mongodb.net/?retryWrites=true&w=majority&appName=UptimeCluster
+SetEnv NODE_ENV production
+SetEnv PORT 5000
+SetEnv REACT_APP_API_BASE_URL https://payments.uptimio.com/api
+SetEnv SMTP_HOST s1047.use1.mysecurecloudhost.com
+SetEnv SMTP_PASS BPtgNG{#I[JY5,cW
+SetEnv SMTP_PORT 465
+SetEnv SMTP_SECURE true
+SetEnv SMTP_USER invoices@uptimio.com
+SetEnv JWT_REFRESH_SECRET b7f9e1d2c8a4f6e3d9b5c7a2e8f4d1c9a6b3e7f2d8c5a1e9f6b4d2c8e5a3f7b1
+</IfModule>
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION END
+
+
+
+

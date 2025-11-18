@@ -1,0 +1,87 @@
+╔══════════════════════════════════════════════════════════╗
+║  🚀 UPLOAD OVE FAJLOVE NA SERVER - POPRAVKA 503 GREŠKE  ║
+╚══════════════════════════════════════════════════════════╝
+
+📂 LOKACIJA NA SERVERU: /home/uptimio/payments.uptimio.com/
+
+✅ OBAVEZNI FAJLOVI (Zameni postojeće):
+────────────────────────────────────────────────────────────
+1. server.js          ← IZMENJENO (sluša na 0.0.0.0:5000)
+2. .htaccess          ← IZMENJENO (koristi 127.0.0.1)
+3. restart.sh         ← NOVO (skript za restart)
+
+📋 OPCIONI FAJLOVI (Za referencu):
+────────────────────────────────────────────────────────────
+4. QUICK_FIX_UPLOAD.md     ← Detaljna uputstva
+5. UPLOAD_OVE_FAJLOVE.txt  ← Ovaj fajl
+
+═══════════════════════════════════════════════════════════
+
+🔧 BRZI KORACI:
+
+1. UPLOAD FAJLOVA (FTP ili cPanel File Manager)
+   ├─ server.js      → /home/uptimio/payments.uptimio.com/
+   ├─ .htaccess      → /home/uptimio/payments.uptimio.com/
+   └─ restart.sh     → /home/uptimio/payments.uptimio.com/
+
+2. SSH TERMINAL - Izvršite komande:
+   ┌─────────────────────────────────────────────────┐
+   │ cd /home/uptimio/payments.uptimio.com           │
+   │ chmod +x restart.sh                             │
+   │ bash restart.sh                                 │
+   └─────────────────────────────────────────────────┘
+
+3. TESTIRAJ:
+   ┌─────────────────────────────────────────────────┐
+   │ curl https://payments.uptimio.com               │
+   └─────────────────────────────────────────────────┘
+   
+   Ako vidiš HTML → RADI! ✅
+   Ako vidiš 503 → Pogledaj log: tail -30 server.log
+
+═══════════════════════════════════════════════════════════
+
+📝 ŠTA JE PROMENJENO:
+
+server.js:
+  • Linija 1869: HOST = '0.0.0.0' (umesto 'localhost')
+  • Linija 1855: buildPath = path.join(__dirname, 'build')
+  • LiteSpeed sada može da pristupi Node.js serveru
+
+.htaccess:
+  • Linija 11: http://127.0.0.1:5000 (umesto localhost:5000)
+  • Bolji proxy za LiteSpeed
+
+═══════════════════════════════════════════════════════════
+
+🎯 ALTERNATIVNI NAČIN (Bez restart.sh):
+
+Ako ne želiš da koristiš restart.sh skript:
+
+cd /home/uptimio/payments.uptimio.com
+pkill -f "node server.js"
+NODE_ENV=production node server.js > server.log 2>&1 &
+
+Sačekaj 3 sekunde, pa testiraj:
+curl https://payments.uptimio.com
+
+═══════════════════════════════════════════════════════════
+
+✅ PROVERA POSLE UPLOAD-A:
+
+ps aux | grep node                    # Proveri da li radi
+ss -tlnp | grep 5000                  # Proveri port (trebalo bi 0.0.0.0:5000)
+curl http://127.0.0.1:5000/api/health # Trebalo bi {"ok":true}
+curl -I https://payments.uptimio.com  # Trebalo bi HTTP/1.1 200 OK
+
+═══════════════════════════════════════════════════════════
+
+📖 Za detaljnije instrukcije, pogledaj: QUICK_FIX_UPLOAD.md
+
+═══════════════════════════════════════════════════════════
+Datum: 2025-11-10
+Verzija: 2.0 - LiteSpeed Fix
+
+
+
+

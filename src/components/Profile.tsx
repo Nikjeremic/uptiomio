@@ -24,6 +24,25 @@ type UserProfile = {
   swiftCode?: string;
   iban?: string;
   cardNumber?: string;
+  // New payment instruction fields
+  bankName?: string;
+  // Correspondent banks (up to 5)
+  correspondentBank1?: string;
+  correspondentBank2?: string;
+  correspondentBank3?: string;
+  correspondentBank4?: string;
+  correspondentBank5?: string;
+  correspondentCountry1?: string;
+  correspondentCountry2?: string;
+  correspondentCountry3?: string;
+  correspondentCountry4?: string;
+  correspondentCountry5?: string;
+  correspondentSwift1?: string;
+  correspondentSwift2?: string;
+  correspondentSwift3?: string;
+  correspondentSwift4?: string;
+  correspondentSwift5?: string;
+  paymentInstructions?: string;
   createdAt?: string;
   updatedAt?: string;
   _id?: string;
@@ -42,7 +61,26 @@ const defaultProfile: UserProfile = {
   signatureUrl: '',
   swiftCode: '',
   iban: '',
-  cardNumber: ''
+  cardNumber: '',
+  // New payment instruction fields
+  bankName: '',
+  // Correspondent banks (up to 5)
+  correspondentBank1: '',
+  correspondentBank2: '',
+  correspondentBank3: '',
+  correspondentBank4: '',
+  correspondentBank5: '',
+  correspondentCountry1: '',
+  correspondentCountry2: '',
+  correspondentCountry3: '',
+  correspondentCountry4: '',
+  correspondentCountry5: '',
+  correspondentSwift1: '',
+  correspondentSwift2: '',
+  correspondentSwift3: '',
+  correspondentSwift4: '',
+  correspondentSwift5: '',
+  paymentInstructions: ''
 };
 
 const Profile: React.FC = () => {
@@ -105,7 +143,25 @@ const Profile: React.FC = () => {
       signatureUrl: src.signatureUrl || '',
       swiftCode: src.swiftCode || '',
       iban: src.iban || '',
-      cardNumber: src.cardNumber || ''
+      cardNumber: src.cardNumber || '',
+      // New payment fields
+      bankName: src.bankName || '',
+      correspondentBank1: src.correspondentBank1 || '',
+      correspondentBank2: src.correspondentBank2 || '',
+      correspondentBank3: src.correspondentBank3 || '',
+      correspondentBank4: src.correspondentBank4 || '',
+      correspondentBank5: src.correspondentBank5 || '',
+      correspondentCountry1: src.correspondentCountry1 || '',
+      correspondentCountry2: src.correspondentCountry2 || '',
+      correspondentCountry3: src.correspondentCountry3 || '',
+      correspondentCountry4: src.correspondentCountry4 || '',
+      correspondentCountry5: src.correspondentCountry5 || '',
+      correspondentSwift1: src.correspondentSwift1 || '',
+      correspondentSwift2: src.correspondentSwift2 || '',
+      correspondentSwift3: src.correspondentSwift3 || '',
+      correspondentSwift4: src.correspondentSwift4 || '',
+      correspondentSwift5: src.correspondentSwift5 || '',
+      paymentInstructions: src.paymentInstructions || ''
     };
   };
 
@@ -364,6 +420,187 @@ const Profile: React.FC = () => {
                 placeholder="Card number for payments"
               />
             </div>
+          </div>
+          
+          <div className="form-grid-1">
+            <div className="form-field">
+              <label>Beneficiary Bank</label>
+              <InputText
+                value={form.bankName}
+                onChange={(e) => handleChange('bankName', e.target.value)}
+                placeholder="e.g., Raiffeisen banka ad Beograd"
+              />
+            </div>
+          </div>
+
+          <div className="form-section-sub">
+            <h4>Correspondent Banks (up to 5)</h4>
+            
+            {/* Correspondent Bank 1 */}
+            <div className="correspondent-bank-group">
+              <h5>Correspondent Bank 1</h5>
+              <div className="form-grid-3">
+                <div className="form-field">
+                  <label>Bank Name</label>
+                  <InputText
+                    value={form.correspondentBank1}
+                    onChange={(e) => handleChange('correspondentBank1', e.target.value)}
+                    placeholder="e.g., Raiffeisen Bank International AG"
+                  />
+                </div>
+                <div className="form-field">
+                  <label>SWIFT/BIC</label>
+                  <InputText
+                    value={form.correspondentSwift1}
+                    onChange={(e) => handleChange('correspondentSwift1', e.target.value)}
+                    placeholder="e.g., RZBAATWW"
+                  />
+                </div>
+                <div className="form-field">
+                  <label>Country</label>
+                  <InputText
+                    value={form.correspondentCountry1}
+                    onChange={(e) => handleChange('correspondentCountry1', e.target.value)}
+                    placeholder="e.g., Austria"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Correspondent Bank 2 */}
+            <div className="correspondent-bank-group">
+              <h5>Correspondent Bank 2</h5>
+              <div className="form-grid-3">
+                <div className="form-field">
+                  <label>Bank Name</label>
+                  <InputText
+                    value={form.correspondentBank2}
+                    onChange={(e) => handleChange('correspondentBank2', e.target.value)}
+                    placeholder="e.g., Deutsche Bank AG"
+                  />
+                </div>
+                <div className="form-field">
+                  <label>SWIFT/BIC</label>
+                  <InputText
+                    value={form.correspondentSwift2}
+                    onChange={(e) => handleChange('correspondentSwift2', e.target.value)}
+                    placeholder="e.g., DEUTDEFF"
+                  />
+                </div>
+                <div className="form-field">
+                  <label>Country</label>
+                  <InputText
+                    value={form.correspondentCountry2}
+                    onChange={(e) => handleChange('correspondentCountry2', e.target.value)}
+                    placeholder="e.g., Germany"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Correspondent Bank 3 */}
+            <div className="correspondent-bank-group">
+              <h5>Correspondent Bank 3</h5>
+              <div className="form-grid-3">
+                <div className="form-field">
+                  <label>Bank Name</label>
+                  <InputText
+                    value={form.correspondentBank3}
+                    onChange={(e) => handleChange('correspondentBank3', e.target.value)}
+                    placeholder="Bank name"
+                  />
+                </div>
+                <div className="form-field">
+                  <label>SWIFT/BIC</label>
+                  <InputText
+                    value={form.correspondentSwift3}
+                    onChange={(e) => handleChange('correspondentSwift3', e.target.value)}
+                    placeholder="SWIFT code"
+                  />
+                </div>
+                <div className="form-field">
+                  <label>Country</label>
+                  <InputText
+                    value={form.correspondentCountry3}
+                    onChange={(e) => handleChange('correspondentCountry3', e.target.value)}
+                    placeholder="Country"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Correspondent Bank 4 */}
+            <div className="correspondent-bank-group">
+              <h5>Correspondent Bank 4</h5>
+              <div className="form-grid-3">
+                <div className="form-field">
+                  <label>Bank Name</label>
+                  <InputText
+                    value={form.correspondentBank4}
+                    onChange={(e) => handleChange('correspondentBank4', e.target.value)}
+                    placeholder="Bank name"
+                  />
+                </div>
+                <div className="form-field">
+                  <label>SWIFT/BIC</label>
+                  <InputText
+                    value={form.correspondentSwift4}
+                    onChange={(e) => handleChange('correspondentSwift4', e.target.value)}
+                    placeholder="SWIFT code"
+                  />
+                </div>
+                <div className="form-field">
+                  <label>Country</label>
+                  <InputText
+                    value={form.correspondentCountry4}
+                    onChange={(e) => handleChange('correspondentCountry4', e.target.value)}
+                    placeholder="Country"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Correspondent Bank 5 */}
+            <div className="correspondent-bank-group">
+              <h5>Correspondent Bank 5</h5>
+              <div className="form-grid-3">
+                <div className="form-field">
+                  <label>Bank Name</label>
+                  <InputText
+                    value={form.correspondentBank5}
+                    onChange={(e) => handleChange('correspondentBank5', e.target.value)}
+                    placeholder="Bank name"
+                  />
+                </div>
+                <div className="form-field">
+                  <label>SWIFT/BIC</label>
+                  <InputText
+                    value={form.correspondentSwift5}
+                    onChange={(e) => handleChange('correspondentSwift5', e.target.value)}
+                    placeholder="SWIFT code"
+                  />
+                </div>
+                <div className="form-field">
+                  <label>Country</label>
+                  <InputText
+                    value={form.correspondentCountry5}
+                    onChange={(e) => handleChange('correspondentCountry5', e.target.value)}
+                    placeholder="Country"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="form-field">
+            <label>Payment Instructions</label>
+            <textarea
+              value={form.paymentInstructions}
+              onChange={(e) => handleChange('paymentInstructions', e.target.value)}
+              placeholder="Additional payment instructions (e.g., 'Kindly be advised of the following instructions to be applied to EUR incoming payments...')"
+              rows={4}
+              style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
+            />
           </div>
         </div>
 

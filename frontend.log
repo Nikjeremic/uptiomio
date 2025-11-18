@@ -1,0 +1,52 @@
+
+> uptiomio@0.1.0 start
+> react-scripts start
+
+(node:12928) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:12928) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+Starting the development server...
+
+Compiled with warnings.
+
+[eslint] 
+src/App.tsx
+  Line 12:17:  'loading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+src/components/Dashboard.tsx
+  Line 24:13:  'tablet' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+src/components/InvoiceList.tsx
+  Line 7:10:   'Dropdown' is defined but never used                   @typescript-eslint/no-unused-vars
+  Line 25:10:  'success' is assigned a value but never used           @typescript-eslint/no-unused-vars
+  Line 83:9:   'askDeleteInvoice' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+src/components/InvoiceView.tsx
+  Line 63:9:  'isAdmin' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+src/components/Profile.tsx
+  Line 100:10:  'isMobile' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/App.tsx
+  Line 12:17:  'loading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+src/components/Dashboard.tsx
+  Line 24:13:  'tablet' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+src/components/InvoiceList.tsx
+  Line 7:10:   'Dropdown' is defined but never used                   @typescript-eslint/no-unused-vars
+  Line 25:10:  'success' is assigned a value but never used           @typescript-eslint/no-unused-vars
+  Line 83:9:   'askDeleteInvoice' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+src/components/InvoiceView.tsx
+  Line 63:9:  'isAdmin' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+src/components/Profile.tsx
+  Line 100:10:  'isMobile' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+No issues found.

@@ -13,7 +13,25 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const { login } = useAuth();
+
+  // Check for email verification redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const verified = params.get('verified');
+    const message = params.get('message');
+
+    if (verified === 'success') {
+      setVerificationMessage({ type: 'success', text: 'Email successfully verified! You can now log in.' });
+      // Clean URL
+      window.history.replaceState({}, '', '/');
+    } else if (verified === 'error') {
+      setVerificationMessage({ type: 'error', text: message || 'Email verification failed.' });
+      // Clean URL
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +55,14 @@ const Login: React.FC = () => {
           <h1 className="brand-title">Payment Services
           </h1>
         </div>
+
+        {verificationMessage && (
+          <Message 
+            severity={verificationMessage.type === 'success' ? 'success' : 'error'} 
+            text={verificationMessage.text} 
+            style={{ marginBottom: '1rem' }}
+          />
+        )}
 
         <form onSubmit={handleSubmit} className="login-form compact">
           <div className="field">

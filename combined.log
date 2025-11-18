@@ -1,0 +1,13 @@
+{"error":"Operation `users.findOne()` buffering timed out after 10000ms","level":"error","message":"Login error","stack":"MongooseError: Operation `users.findOne()` buffering timed out after 10000ms\n    at Timeout.<anonymous> (/home/nikjeremic/Desktop/uptiomio/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:185:23)\n    at listOnTimeout (node:internal/timers:569:17)\n    at process.processTimers (node:internal/timers:512:7)","timestamp":"2025-11-10T19:58:31.213Z"}
+{"error":"Operation `users.findOne()` buffering timed out after 10000ms","level":"error","message":"Login error","stack":"MongooseError: Operation `users.findOne()` buffering timed out after 10000ms\n    at Timeout.<anonymous> (/home/nikjeremic/Desktop/uptiomio/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:185:23)\n    at listOnTimeout (node:internal/timers:569:17)\n    at process.processTimers (node:internal/timers:512:7)","timestamp":"2025-11-10T20:00:18.038Z"}
+{"email":"test@test.com","ip":"::1","level":"warn","message":"Login attempt with non-existent email","timestamp":"2025-11-10T20:02:17.788Z"}
+{"email":"test","ip":"::1","level":"warn","message":"Login attempt with non-existent email","timestamp":"2025-11-10T20:06:42.718Z"}
+{"email":"nikjeremic@uptimio.com","level":"info","message":"Successful login","role":"admin","timestamp":"2025-11-10T20:07:11.430Z","userId":"68d251ae6ed7fd2d73b9a185"}
+{"email":"nikjeremic@uptimio.com","level":"info","message":"Successful login","role":"admin","timestamp":"2025-11-10T20:09:24.618Z","userId":"68d251ae6ed7fd2d73b9a185"}
+{"email":"nikjeremic@uptimio.com","level":"info","message":"Successful login","role":"admin","timestamp":"2025-11-10T20:10:28.693Z","userId":"68d251ae6ed7fd2d73b9a185"}
+{"email":"nikjeremic@uptimio.com","level":"info","message":"Successful login","role":"admin","timestamp":"2025-11-10T20:15:58.082Z","userId":"68d251ae6ed7fd2d73b9a185"}
+{"level":"info","message":"User logged out","timestamp":"2025-11-10T20:16:02.178Z","userId":"68d251ae6ed7fd2d73b9a185"}
+{"ip":"::1","level":"warn","message":"Expired token used","timestamp":"2025-11-10T21:27:52.959Z"}
+{"level":"warn","message":"Refresh token mismatch","timestamp":"2025-11-10T21:27:53.042Z","userId":"68d251ae6ed7fd2d73b9a185"}
+{"email":"nikjeremic@uptimio.com","level":"info","message":"Successful login","role":"admin","timestamp":"2025-11-10T21:29:14.571Z","userId":"68d251ae6ed7fd2d73b9a185"}
+{"level":"info","message":"User logged out","timestamp":"2025-11-10T21:29:19.381Z","userId":"68d251ae6ed7fd2d73b9a185"}

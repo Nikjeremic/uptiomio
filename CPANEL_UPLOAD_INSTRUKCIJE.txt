@@ -1,0 +1,230 @@
+═══════════════════════════════════════════════════════════════════
+  🚀 KOMPLETAN VODIČ - Upload na cPanel Node.js Aplikaciju
+═══════════════════════════════════════════════════════════════════
+
+📋 KORACI ZA USPEŠAN DEPLOYMENT:
+
+╔═══════════════════════════════════════════════════════════════╗
+║  KORAK 1: Pripremi Build (na lokalnom računaru)              ║
+╚═══════════════════════════════════════════════════════════════╝
+
+U terminalu, pozicioniraj se u projekat i pokreni:
+
+    npm run build
+
+Ovo će kreirati/ažurirati 'build' folder sa kompajliranim React aplikacijom.
+
+
+╔═══════════════════════════════════════════════════════════════╗
+║  KORAK 2: Upload fajlova na cPanel                            ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Uploaduj sledeće fajlove i foldere na server (cPanel File Manager):
+
+✅ OBAVEZNO:
+   ├── server.js                     (glavna Node.js aplikacija)
+   ├── package.json                  (lista dependencies)
+   ├── package-lock.json             (lock file)
+   ├── build/                        (ceo folder sa svim fajlovima)
+   │   ├── index.html
+   │   ├── asset-manifest.json
+   │   ├── static/
+   │   └── ...sve ostalo iz build foldera
+   └── uploads/                      (folder za slike)
+       └── uptimioInvoice.jpg
+
+
+╔═══════════════════════════════════════════════════════════════╗
+║  KORAK 3: Kreiraj .env fajl na serveru                        ║
+╚═══════════════════════════════════════════════════════════════╝
+
+U cPanel File Manager, kreiraj novi fajl ".env" i stavi sledeći sadržaj
+(PROMENI vrednosti sa svojim podacima!):
+
+─────────────────────────────────────────────────────────────────
+# MongoDB Database
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/uptiomio
+
+# JWT Secret (OBAVEZNO PROMENI!)
+JWT_SECRET=tvoj-ultra-siguran-random-secret-key-12345
+
+# Server Configuration
+PORT=5000
+NODE_ENV=production
+
+# URLs (Tvoj domen)
+BACKEND_BASE_URL=https://tvoj-domen.com
+FRONTEND_BASE_URL=https://tvoj-domen.com
+
+# Email Verification
+EMAIL_VERIFICATION_ENABLED=false
+
+# SMTP Email Settings
+SMTP_HOST=mail.tvoj-domen.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=noreply@tvoj-domen.com
+SMTP_PASS=tvoja-email-lozinka
+
+# Email From Address
+MAIL_FROM=Uptimio Payments <noreply@tvoj-domen.com>
+
+# Email Logo & Signature
+MAIL_LOGO_URL=https://tvoj-domen.com/uploads/uptimioInvoice.jpg
+MAIL_SIGNATURE_URL=
+
+# Admin Email
+ADMIN_EMAIL=tvoj-email@gmail.com
+─────────────────────────────────────────────────────────────────
+
+
+╔═══════════════════════════════════════════════════════════════╗
+║  KORAK 4: Konfiguriši Node.js App u cPanel-u                  ║
+╚═══════════════════════════════════════════════════════════════╝
+
+1. Idi u cPanel → "Setup Node.js App"
+2. Klikni "Create Application"
+3. Popuni sledeće podatke:
+
+   Node.js version:  18.x ili noviji
+   Application mode: Production
+   Application root: /home/korisnik/tvoj-folder
+   Application URL:  https://tvoj-domen.com
+   Application startup file: server.js
+   
+4. Klikni "Create"
+
+
+╔═══════════════════════════════════════════════════════════════╗
+║  KORAK 5: Instaliraj Dependencies                             ║
+╚═══════════════════════════════════════════════════════════════╝
+
+U cPanel Node.js App interfejsu:
+
+1. Skroluj dole do "Detected configuration files"
+2. Klikni "Run NPM Install" dugme
+   
+   ILI u SSH terminalu:
+   
+   cd /home/korisnik/tvoj-folder
+   npm install --production
+
+
+╔═══════════════════════════════════════════════════════════════╗
+║  KORAK 6: Pokreni/Restartuj aplikaciju                        ║
+╚═══════════════════════════════════════════════════════════════╝
+
+U cPanel Node.js App interfejsu:
+
+   Klikni "Restart" dugme
+
+   ILI u SSH terminalu:
+   
+   cd /home/korisnik/tvoj-folder
+   pkill -f "node server.js"
+   NODE_ENV=production node server.js > server.log 2>&1 &
+
+
+╔═══════════════════════════════════════════════════════════════╗
+║  KORAK 7: Testiraj aplikaciju                                 ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Otvori browser i idi na: https://tvoj-domen.com
+
+Trebalo bi da vidiš Uptimio login stranicu.
+
+U SSH terminalu možeš proveriti:
+
+   # Proveri da li Node.js proces radi
+   ps aux | grep node
+   
+   # Proveri logove
+   tail -f /home/korisnik/tvoj-folder/server.log
+   
+   # Testiraj API endpoint
+   curl https://tvoj-domen.com/api/health
+
+
+═══════════════════════════════════════════════════════════════════
+  📝 VAŽNE NAPOMENE
+═══════════════════════════════════════════════════════════════════
+
+⚠️  KRITIČNO - Obavezno promeni:
+   • JWT_SECRET mora biti dugačak i random
+   • MONGODB_URI mora biti tvoja prava MongoDB konekcija
+   • SMTP podatke za slanje emailova
+
+📌  Build folder:
+   • Uvek pokreni 'npm run build' pre upload-a
+   • Uploaduj KOMPLETNO ceo build folder
+   • Ne menjaj strukturu build foldera
+
+🔒  Sigurnost:
+   • .env fajl nikad ne commituj u Git
+   • Koristi jake lozinke za MongoDB i SMTP
+   • Redovno ažuriraj Node.js dependencies
+
+🛠️  Za update aplikacije:
+   1. Lokalno pokreni: npm run build
+   2. Uploaduj novi build folder
+   3. Uploaduj izmenjeni server.js (ako ima promena)
+   4. Restartuj Node.js app u cPanel-u
+
+
+═══════════════════════════════════════════════════════════════════
+  🆘 TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════
+
+❌ Problem: 503 Service Unavailable
+   ✅ Rešenje: 
+      - Proveri da li Node.js proces radi: ps aux | grep node
+      - Proveri logove: tail -50 server.log
+      - Restartuj aplikaciju
+
+❌ Problem: Cannot connect to MongoDB
+   ✅ Rešenje: 
+      - Proveri MONGODB_URI u .env fajlu
+      - Proveri da li je IP adresa servera dozvoljena u MongoDB Atlas
+
+❌ Problem: Cannot send emails
+   ✅ Rešenje: 
+      - Proveri SMTP_HOST, SMTP_USER, SMTP_PASS u .env
+      - Testiraj sa: /api/test-email endpoint
+
+❌ Problem: Blank page na frontendu
+   ✅ Rešenje: 
+      - Proveri da li build/ folder ima sve fajlove
+      - Proveri da li su BACKEND_BASE_URL i FRONTEND_BASE_URL ispravni
+      - Otvori Browser Console i proveri greške
+
+
+═══════════════════════════════════════════════════════════════════
+  📁 STRUKTURA NA SERVERU (Konačno)
+═══════════════════════════════════════════════════════════════════
+
+/home/korisnik/domen.com/
+├── server.js                    ← Backend
+├── package.json                 ← Dependencies lista
+├── package-lock.json            ← Lock file
+├── .env                         ← Environment varijable (KREIRAJ!)
+├── node_modules/                ← Auto-instalira npm install
+├── build/                       ← React build
+│   ├── index.html
+│   ├── static/
+│   │   ├── css/
+│   │   ├── js/
+│   │   └── media/
+│   └── ...
+├── uploads/                     ← Uploadovane slike
+│   └── uptimioInvoice.jpg
+├── server.log                   ← Auto-kreira Node.js
+├── combined.log                 ← Auto-kreira Winston
+└── error.log                    ← Auto-kreira Winston
+
+
+═══════════════════════════════════════════════════════════════════
+Autor: AI Assistant
+Datum: 2025-11-11
+Za: Uptimio Payment System - Node.js Deployment
+═══════════════════════════════════════════════════════════════════
+

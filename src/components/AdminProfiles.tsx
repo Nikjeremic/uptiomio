@@ -56,23 +56,115 @@ const AdminProfiles: React.FC = () => {
   const openEdit = async (user: any) => {
     setError(''); setSuccess('');
     setEditUser(user);
+    
+    // Default profile template with all fields
+    const defaultProfileTemplate = { 
+      userId: user._id || user.id, 
+      fullName: user.name, 
+      companyName: '', 
+      addressLine: '', 
+      city: '', 
+      state: '', 
+      postalCode: '', 
+      country: '', 
+      phone: '', 
+      logoUrl: '',
+      signatureUrl: '',
+      swiftCode: '',
+      iban: '',
+      cardNumber: '',
+      bankName: '',
+      correspondentBank1: '',
+      correspondentBank2: '',
+      correspondentBank3: '',
+      correspondentBank4: '',
+      correspondentBank5: '',
+      correspondentCountry1: '',
+      correspondentCountry2: '',
+      correspondentCountry3: '',
+      correspondentCountry4: '',
+      correspondentCountry5: '',
+      correspondentSwift1: '',
+      correspondentSwift2: '',
+      correspondentSwift3: '',
+      correspondentSwift4: '',
+      correspondentSwift5: '',
+      paymentInstructions: ''
+    };
+    
     try {
+      console.log('=== Loading Profile for User ===');
+      console.log('User:', user);
       const { data } = await profileAPI.getByUserId(user._id || user.id);
-      setProfile(data);
-    } catch {
-      setProfile({ userId: user._id || user.id, fullName: user.name, companyName: '', addressLine: '', city: '', state: '', postalCode: '', country: '', phone: '', logoUrl: '' });
+      console.log('Profile loaded from API:', JSON.stringify(data, null, 2));
+      // Merge with default template to ensure all new fields exist
+      const mergedProfile = { ...defaultProfileTemplate, ...data };
+      console.log('Merged profile with defaults:', JSON.stringify(mergedProfile, null, 2));
+      setProfile(mergedProfile);
+    } catch (err) {
+      console.log('No existing profile, creating default one');
+      setProfile(defaultProfileTemplate);
     }
+  };
+
+  const buildUpdatePayload = (src: any) => {
+    // Explicitly build payload with all fields to ensure nothing is lost
+    return {
+      companyName: src.companyName || '',
+      fullName: src.fullName || '',
+      addressLine: src.addressLine || '',
+      city: src.city || '',
+      state: src.state || '',
+      postalCode: src.postalCode || '',
+      country: src.country || '',
+      phone: src.phone || '',
+      logoUrl: src.logoUrl || '',
+      signatureUrl: src.signatureUrl || '',
+      swiftCode: src.swiftCode || '',
+      iban: src.iban || '',
+      cardNumber: src.cardNumber || '',
+      // New payment fields
+      bankName: src.bankName || '',
+      correspondentBank1: src.correspondentBank1 || '',
+      correspondentBank2: src.correspondentBank2 || '',
+      correspondentBank3: src.correspondentBank3 || '',
+      correspondentBank4: src.correspondentBank4 || '',
+      correspondentBank5: src.correspondentBank5 || '',
+      correspondentCountry1: src.correspondentCountry1 || '',
+      correspondentCountry2: src.correspondentCountry2 || '',
+      correspondentCountry3: src.correspondentCountry3 || '',
+      correspondentCountry4: src.correspondentCountry4 || '',
+      correspondentCountry5: src.correspondentCountry5 || '',
+      correspondentSwift1: src.correspondentSwift1 || '',
+      correspondentSwift2: src.correspondentSwift2 || '',
+      correspondentSwift3: src.correspondentSwift3 || '',
+      correspondentSwift4: src.correspondentSwift4 || '',
+      correspondentSwift5: src.correspondentSwift5 || '',
+      paymentInstructions: src.paymentInstructions || ''
+    };
   };
 
   const saveProfile = async () => {
     if (!editUser) return;
     setSaving(true); setError(''); setSuccess('');
     try {
-      const { data } = await profileAPI.updateByUserId(editUser._id || editUser.id, profile);
-      setProfile(data);
+      console.log('=== Saving Admin Profile ===');
+      console.log('User ID:', editUser._id || editUser.id);
+      console.log('Profile state:', JSON.stringify(profile, null, 2));
+      
+      const payload = buildUpdatePayload(profile);
+      console.log('Profile payload being sent:', JSON.stringify(payload, null, 2));
+      
+      const { data } = await profileAPI.updateByUserId(editUser._id || editUser.id, payload);
+      console.log('Profile data received back:', JSON.stringify(data, null, 2));
+      
+      // Merge received data with defaults again
+      const mergedData = { ...profile, ...data };
+      setProfile(mergedData);
       setSuccess('Profile saved');
       await fetchUsers();
     } catch (e: any) {
+      console.error('Failed to save profile:', e);
       setError(e.response?.data?.message || 'Failed to save profile');
     } finally {
       setSaving(false);
@@ -372,6 +464,125 @@ const AdminProfiles: React.FC = () => {
             <div className="form-field">
               <label>Card Number</label>
               <InputText value={profile.cardNumber || ''} onChange={(e) => setProfile((p: any) => ({ ...p, cardNumber: e.target.value }))} placeholder="Card number for payments" />
+            </div>
+          </div>
+
+          <div className="form-grid">
+            <div className="form-field full-width">
+              <label>Beneficiary Bank</label>
+              <InputText value={profile.bankName || ''} onChange={(e) => setProfile((p: any) => ({ ...p, bankName: e.target.value }))} placeholder="e.g., Raiffeisen banka ad Beograd" />
+            </div>
+          </div>
+
+          <div style={{ marginTop: '16px', marginBottom: '8px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600' }}>Correspondent Banks (up to 5)</h4>
+          </div>
+
+          {/* Correspondent Bank 1 */}
+          <div style={{ marginBottom: '16px', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+            <h5 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: '600' }}>Correspondent Bank 1</h5>
+            <div className="form-grid">
+              <div className="form-field">
+                <label>Bank Name</label>
+                <InputText value={profile.correspondentBank1 || ''} onChange={(e) => setProfile((p: any) => ({ ...p, correspondentBank1: e.target.value }))} placeholder="e.g., Raiffeisen Bank International AG" />
+              </div>
+              <div className="form-field">
+                <label>SWIFT/BIC</label>
+                <InputText value={profile.correspondentSwift1 || ''} onChange={(e) => setProfile((p: any) => ({ ...p, correspondentSwift1: e.target.value }))} placeholder="e.g., RZBAATWW" />
+              </div>
+              <div className="form-field">
+                <label>Country</label>
+                <InputText value={profile.correspondentCountry1 || ''} onChange={(e) => setProfile((p: any) => ({ ...p, correspondentCountry1: e.target.value }))} placeholder="e.g., Austria" />
+              </div>
+            </div>
+          </div>
+
+          {/* Correspondent Bank 2 */}
+          <div style={{ marginBottom: '16px', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+            <h5 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: '600' }}>Correspondent Bank 2</h5>
+            <div className="form-grid">
+              <div className="form-field">
+                <label>Bank Name</label>
+                <InputText value={profile.correspondentBank2 || ''} onChange={(e) => setProfile((p: any) => ({ ...p, correspondentBank2: e.target.value }))} placeholder="e.g., Deutsche Bank AG" />
+              </div>
+              <div className="form-field">
+                <label>SWIFT/BIC</label>
+                <InputText value={profile.correspondentSwift2 || ''} onChange={(e) => setProfile((p: any) => ({ ...p, correspondentSwift2: e.target.value }))} placeholder="e.g., DEUTDEFF" />
+              </div>
+              <div className="form-field">
+                <label>Country</label>
+                <InputText value={profile.correspondentCountry2 || ''} onChange={(e) => setProfile((p: any) => ({ ...p, correspondentCountry2: e.target.value }))} placeholder="e.g., Germany" />
+              </div>
+            </div>
+          </div>
+
+          {/* Correspondent Bank 3 */}
+          <div style={{ marginBottom: '16px', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+            <h5 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: '600' }}>Correspondent Bank 3</h5>
+            <div className="form-grid">
+              <div className="form-field">
+                <label>Bank Name</label>
+                <InputText value={profile.correspondentBank3 || ''} onChange={(e) => setProfile((p: any) => ({ ...p, correspondentBank3: e.target.value }))} placeholder="Bank name" />
+              </div>
+              <div className="form-field">
+                <label>SWIFT/BIC</label>
+                <InputText value={profile.correspondentSwift3 || ''} onChange={(e) => setProfile((p: any) => ({ ...p, correspondentSwift3: e.target.value }))} placeholder="SWIFT code" />
+              </div>
+              <div className="form-field">
+                <label>Country</label>
+                <InputText value={profile.correspondentCountry3 || ''} onChange={(e) => setProfile((p: any) => ({ ...p, correspondentCountry3: e.target.value }))} placeholder="Country" />
+              </div>
+            </div>
+          </div>
+
+          {/* Correspondent Bank 4 */}
+          <div style={{ marginBottom: '16px', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+            <h5 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: '600' }}>Correspondent Bank 4</h5>
+            <div className="form-grid">
+              <div className="form-field">
+                <label>Bank Name</label>
+                <InputText value={profile.correspondentBank4 || ''} onChange={(e) => setProfile((p: any) => ({ ...p, correspondentBank4: e.target.value }))} placeholder="Bank name" />
+              </div>
+              <div className="form-field">
+                <label>SWIFT/BIC</label>
+                <InputText value={profile.correspondentSwift4 || ''} onChange={(e) => setProfile((p: any) => ({ ...p, correspondentSwift4: e.target.value }))} placeholder="SWIFT code" />
+              </div>
+              <div className="form-field">
+                <label>Country</label>
+                <InputText value={profile.correspondentCountry4 || ''} onChange={(e) => setProfile((p: any) => ({ ...p, correspondentCountry4: e.target.value }))} placeholder="Country" />
+              </div>
+            </div>
+          </div>
+
+          {/* Correspondent Bank 5 */}
+          <div style={{ marginBottom: '16px', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+            <h5 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: '600' }}>Correspondent Bank 5</h5>
+            <div className="form-grid">
+              <div className="form-field">
+                <label>Bank Name</label>
+                <InputText value={profile.correspondentBank5 || ''} onChange={(e) => setProfile((p: any) => ({ ...p, correspondentBank5: e.target.value }))} placeholder="Bank name" />
+              </div>
+              <div className="form-field">
+                <label>SWIFT/BIC</label>
+                <InputText value={profile.correspondentSwift5 || ''} onChange={(e) => setProfile((p: any) => ({ ...p, correspondentSwift5: e.target.value }))} placeholder="SWIFT code" />
+              </div>
+              <div className="form-field">
+                <label>Country</label>
+                <InputText value={profile.correspondentCountry5 || ''} onChange={(e) => setProfile((p: any) => ({ ...p, correspondentCountry5: e.target.value }))} placeholder="Country" />
+              </div>
+            </div>
+          </div>
+
+          <div className="form-grid">
+            <div className="form-field full-width">
+              <label>Payment Instructions</label>
+              <textarea
+                value={profile.paymentInstructions || ''}
+                onChange={(e) => setProfile((p: any) => ({ ...p, paymentInstructions: e.target.value }))}
+                placeholder="Additional payment instructions (e.g., 'Kindly be advised of the following instructions to be applied to EUR incoming payments...')"
+                rows={4}
+                style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', fontFamily: 'inherit' }}
+              />
             </div>
           </div>
 

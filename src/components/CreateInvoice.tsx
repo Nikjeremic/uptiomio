@@ -23,6 +23,7 @@ const CreateInvoice: React.FC = () => {
   const [clientCompany, setClientCompany] = useState('');
   const [clientAddress, setClientAddress] = useState('');
   const [clientCountry, setClientCountry] = useState('');
+  const [clientZipCode, setClientZipCode] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [items, setItems] = useState<ItemRow[]>([{ description: '', quantity: 1, unitPrice: 0 }]);
   const [notes, setNotes] = useState('');
@@ -73,6 +74,7 @@ const CreateInvoice: React.FC = () => {
         setClientCompany(data.companyName || '');
         setClientAddress(data.addressLine || '');
         setClientCountry(data.country || '');
+        setClientZipCode(data.postalCode || '');
         setClientPhone(data.phone || '');
       } catch (e) {
         // if missing profile, keep manual entry
@@ -109,6 +111,7 @@ const CreateInvoice: React.FC = () => {
         issuerCompany: issuerProfile.companyName || "Uptimio",
         issuerAddress: issuerProfile.addressLine || "",
         issuerCountry: issuerProfile.country || "",
+        issuerZipCode: issuerProfile.postalCode || "",
         issuerPhone: issuerProfile.phone || "",
         issuerLogoUrl: issuerProfile.logoUrl || "",
         issuerSignatureUrl: issuerProfile.signatureUrl || "",
@@ -122,6 +125,7 @@ const CreateInvoice: React.FC = () => {
         clientCompany,
         clientAddress,
         clientCountry,
+        clientZipCode,
         clientPhone,
         
         // Invoice data
@@ -144,6 +148,7 @@ const CreateInvoice: React.FC = () => {
       setClientCompany('');
       setClientAddress('');
       setClientCountry('');
+      setClientZipCode('');
       setClientPhone('');
       setItems([{ description: '', quantity: 1, unitPrice: 0 }]);
       setNotes('');
@@ -222,6 +227,11 @@ const CreateInvoice: React.FC = () => {
             <div className="form-group">
               <label className="form-label">Client country</label>
               <InputText value={clientCountry} onChange={(e) => setClientCountry(e.target.value)} className="form-input" placeholder="Optional" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Client zip code</label>
+              <InputText value={clientZipCode} onChange={(e) => setClientZipCode(e.target.value)} className="form-input" placeholder="Optional" />
             </div>
 
             <div className="form-group">

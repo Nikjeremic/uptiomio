@@ -89,6 +89,14 @@ const InvoiceView: React.FC = () => {
         .payment-item { display: flex; flex-direction: column; }
         .payment-label { font-size: 11px; font-weight: 600; color: #6b7280; margin-bottom: 2px; }
         .payment-value { font-size: 12px; font-weight: 500; color: #111827; word-break: break-all; }
+        .correspondent-banks { margin-top: 12px; }
+        .correspondent-banks h5 { margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #374151; }
+        .correspondent-bank-compact { margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #f3f4f6; }
+        .correspondent-bank-compact:last-child { border-bottom: none; margin-bottom: 0; }
+        .bank-name { font-size: 12px; font-weight: 600; color: #111827; margin-bottom: 2px; }
+        .bank-details { font-size: 11px; color: #6b7280; }
+        .bank-details .swift { font-weight: 500; }
+        .bank-details .country { color: #9ca3af; }
         @media (max-width: 768px) {
           .payment-details { grid-template-columns: 1fr; gap: 8px; }
         }
@@ -112,6 +120,9 @@ const InvoiceView: React.FC = () => {
                 <div style={{ marginTop: 4, fontWeight: 600 }}>{invoice.issuerName}</div>
                 {/* Removed issuerCompany from header by request */}
                 {invoice.issuerAddress && <div>{invoice.issuerAddress}</div>}
+                {(invoice as any).issuerZipCode && (invoice as any).issuerCountry && <div>{(invoice as any).issuerZipCode}, {(invoice as any).issuerCountry}</div>}
+                {!(invoice as any).issuerZipCode && (invoice as any).issuerCountry && <div>{(invoice as any).issuerCountry}</div>}
+                {(invoice as any).issuerZipCode && !(invoice as any).issuerCountry && <div>{(invoice as any).issuerZipCode}</div>}
                 {/* Fixed contact info */}
                 <div>+38162460696</div>
                 <div>invoices@uptimio.com</div>
@@ -122,7 +133,9 @@ const InvoiceView: React.FC = () => {
                 <div>{invoice.clientEmail}</div>
                 {invoice.clientCompany && <div style={{ fontWeight: 600 }}>{invoice.clientCompany}</div>}
                 {invoice.clientAddress && <div>{invoice.clientAddress}</div>}
-                {invoice.clientCountry && <div>{invoice.clientCountry}</div>}
+                {(invoice as any).clientZipCode && invoice.clientCountry && <div>{(invoice as any).clientZipCode}, {invoice.clientCountry}</div>}
+                {!(invoice as any).clientZipCode && invoice.clientCountry && <div>{invoice.clientCountry}</div>}
+                {(invoice as any).clientZipCode && !invoice.clientCountry && <div>{(invoice as any).clientZipCode}</div>}
                 {invoice.clientPhone && <div>{invoice.clientPhone}</div>}
               </div>
             </div>
@@ -163,10 +176,20 @@ const InvoiceView: React.FC = () => {
               <div style={{ fontWeight: 600 }}>Due date: <span style={{ fontWeight: 700 }}>{new Date(invoice.dueDate).toLocaleDateString('en-US')}</span></div>
             </div>
 
-            {/* Payment Information - ONLY FOR ADMIN USERS */}
-            {isAdmin && ((invoice as any).issuerSwiftCode || (invoice as any).issuerIban || (invoice as any).issuerCardNumber) && (
+            {/* Payment Information - VISIBLE TO ALL USERS */}
+            {((invoice as any).issuerSwiftCode || (invoice as any).issuerIban || (invoice as any).issuerCardNumber || (invoice as any).issuerBankName) && (
               <div className="payment-info">
                 <h4>Payment Information</h4>
+                
+                {/* Bank Information */}
+                {(invoice as any).issuerBankName && (
+                  <div className="payment-item">
+                    <div className="payment-label">Beneficiary Bank</div>
+                    <div className="payment-value">{(invoice as any).issuerBankName}</div>
+                  </div>
+                )}
+                
+                {/* Basic Payment Details */}
                 <div className="payment-details">
                   {(invoice as any).issuerSwiftCode && (
                     <div className="payment-item">
@@ -187,6 +210,101 @@ const InvoiceView: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Correspondent Banks */}
+                {((invoice as any).issuerCorrespondentBank1 || (invoice as any).issuerCorrespondentBank2 || (invoice as any).issuerCorrespondentBank3 || (invoice as any).issuerCorrespondentBank4 || (invoice as any).issuerCorrespondentBank5) && (
+                  <div className="correspondent-banks">
+                    <h5>Correspondents:</h5>
+                    
+                    {(invoice as any).issuerCorrespondentBank1 && (
+                      <div className="correspondent-bank-compact">
+                        <div className="bank-name"><strong>{(invoice as any).issuerCorrespondentBank1}</strong></div>
+                        {(invoice as any).issuerCorrespondentSwift1 && (
+                          <div className="bank-details">
+                            <span className="swift">SWIFT/BIC: {(invoice as any).issuerCorrespondentSwift1}</span>
+                            {(invoice as any).issuerCorrespondentCountry1 && (
+                              <span className="country"> | Country: {(invoice as any).issuerCorrespondentCountry1}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {(invoice as any).issuerCorrespondentBank2 && (
+                      <div className="correspondent-bank-compact">
+                        <div className="bank-name"><strong>{(invoice as any).issuerCorrespondentBank2}</strong></div>
+                        {(invoice as any).issuerCorrespondentSwift2 && (
+                          <div className="bank-details">
+                            <span className="swift">SWIFT/BIC: {(invoice as any).issuerCorrespondentSwift2}</span>
+                            {(invoice as any).issuerCorrespondentCountry2 && (
+                              <span className="country"> | Country: {(invoice as any).issuerCorrespondentCountry2}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {(invoice as any).issuerCorrespondentBank3 && (
+                      <div className="correspondent-bank-compact">
+                        <div className="bank-name"><strong>{(invoice as any).issuerCorrespondentBank3}</strong></div>
+                        {(invoice as any).issuerCorrespondentSwift3 && (
+                          <div className="bank-details">
+                            <span className="swift">SWIFT/BIC: {(invoice as any).issuerCorrespondentSwift3}</span>
+                            {(invoice as any).issuerCorrespondentCountry3 && (
+                              <span className="country"> | Country: {(invoice as any).issuerCorrespondentCountry3}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {(invoice as any).issuerCorrespondentBank4 && (
+                      <div className="correspondent-bank-compact">
+                        <div className="bank-name"><strong>{(invoice as any).issuerCorrespondentBank4}</strong></div>
+                        {(invoice as any).issuerCorrespondentSwift4 && (
+                          <div className="bank-details">
+                            <span className="swift">SWIFT/BIC: {(invoice as any).issuerCorrespondentSwift4}</span>
+                            {(invoice as any).issuerCorrespondentCountry4 && (
+                              <span className="country"> | Country: {(invoice as any).issuerCorrespondentCountry4}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {(invoice as any).issuerCorrespondentBank5 && (
+                      <div className="correspondent-bank-compact">
+                        <div className="bank-name"><strong>{(invoice as any).issuerCorrespondentBank5}</strong></div>
+                        {(invoice as any).issuerCorrespondentSwift5 && (
+                          <div className="bank-details">
+                            <span className="swift">SWIFT/BIC: {(invoice as any).issuerCorrespondentSwift5}</span>
+                            {(invoice as any).issuerCorrespondentCountry5 && (
+                              <span className="country"> | Country: {(invoice as any).issuerCorrespondentCountry5}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Payment Instructions */}
+                {(invoice as any).issuerPaymentInstructions && (
+                  <div className="payment-instructions">
+                    <h5>Payment Instructions</h5>
+                    <div className="instructions-text" style={{ 
+                      whiteSpace: 'pre-line', 
+                      fontSize: '12px', 
+                      lineHeight: '1.4',
+                      backgroundColor: '#f8f9fa',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid #e9ecef'
+                    }}>
+                      {(invoice as any).issuerPaymentInstructions}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

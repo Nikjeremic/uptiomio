@@ -1,0 +1,4 @@
+[2025-11-10 21:52:20] DEBUG Creating transport: nodemailer (7.0.6; +https://nodemailer.com/; SMTP/7.0.6[client:7.0.6])
+Server running on 0.0.0.0:4000
+Environment: development
+Connected to MongoDB

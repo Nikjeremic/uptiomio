@@ -1,22 +1,8 @@
-node:internal/modules/cjs/loader:1137
-  throw err;
-  ^
-
-Error: Cannot find module 'nodemailer'
-Require stack:
-- /home/nikjeremic/Desktop/paymentService/uptiomio/server.js
-    at Module._resolveFilename (node:internal/modules/cjs/loader:1134:15)
-    at Module._load (node:internal/modules/cjs/loader:975:27)
-    at Module.require (node:internal/modules/cjs/loader:1225:19)
-    at require (node:internal/modules/helpers:177:18)
-    at Object.<anonymous> (/home/nikjeremic/Desktop/paymentService/uptiomio/server.js:8:20)
-    at Module._compile (node:internal/modules/cjs/loader:1356:14)
-    at Module._extensions..js (node:internal/modules/cjs/loader:1414:10)
-    at Module.load (node:internal/modules/cjs/loader:1197:32)
-    at Module._load (node:internal/modules/cjs/loader:1013:12)
-    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12) {
-  code: 'MODULE_NOT_FOUND',
-  requireStack: [ '/home/nikjeremic/Desktop/paymentService/uptiomio/server.js' ]
-}
-
-Node.js v18.19.1
+nohup: ignoring input
+[2025-11-10 20:56:28] DEBUG Creating transport: nodemailer (7.0.9; +https://nodemailer.com/; SMTP/7.0.9[client:7.0.9])
+Serving React build from root directory: /home/uptimio/payments.uptimio.com
+Server running on localhost:5000
+Environment: production
+Connected to MongoDB
+[33mwarn[39m: Login attempt with non-existent email {"email":"test","ip":"::1","timestamp":"2025-11-10T20:57:28.773Z"}
+[32minfo[39m: Successful login {"email":"nikjeremic@uptimio.com","role":"admin","timestamp":"2025-11-10T20:57:52.307Z","userId":"68d251ae6ed7fd2d73b9a185"}
