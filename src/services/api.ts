@@ -139,6 +139,10 @@ export const invoiceAPI = {
   deleteById: (id: string) => api.delete(`/invoices/${id}`)
 };
 
+export const nbsAPI = {
+  getRates: () => api.get('/nbs-rates')
+};
+
 export const userAPI = {
   getAllUsers: () => api.get('/users'),
   createUser: (name: string, email: string, password: string, role: 'user' | 'admin', profile?: any) =>

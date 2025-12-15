@@ -6,6 +6,7 @@ import InvoiceList from './InvoiceList';
 import CreateInvoice from './CreateInvoice';
 import CreateUser from './CreateUser';
 import Profile from './Profile';
+import SelfTaxCalculator from './SelfTaxCalculator';
 import AdminProfiles from './AdminProfiles';
 import './Dashboard.css';
 
@@ -47,6 +48,8 @@ const Dashboard: React.FC = () => {
         return isAdmin ? <CreateUser /> : null;
       case 4:
         return <Profile />;
+      case 5:
+        return <SelfTaxCalculator />;
       default:
         return <InvoiceList isAdmin={isAdmin} />;
     }

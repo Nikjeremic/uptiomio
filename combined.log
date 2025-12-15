@@ -11,3 +11,7 @@
 {"level":"warn","message":"Refresh token mismatch","timestamp":"2025-11-10T21:27:53.042Z","userId":"68d251ae6ed7fd2d73b9a185"}
 {"email":"nikjeremic@uptimio.com","level":"info","message":"Successful login","role":"admin","timestamp":"2025-11-10T21:29:14.571Z","userId":"68d251ae6ed7fd2d73b9a185"}
 {"level":"info","message":"User logged out","timestamp":"2025-11-10T21:29:19.381Z","userId":"68d251ae6ed7fd2d73b9a185"}
+{"email":"nikjeremic@uptimio.com","level":"info","message":"Successful login","role":"admin","timestamp":"2025-12-15T13:41:10.058Z","userId":"68d251ae6ed7fd2d73b9a185"}
+{"ip":"127.0.0.1","level":"warn","message":"Expired token used","timestamp":"2025-12-15T13:56:29.996Z"}
+{"ip":"127.0.0.1","level":"warn","message":"Expired token used","timestamp":"2025-12-15T13:56:29.998Z"}
+{"level":"info","message":"Token refreshed","timestamp":"2025-12-15T13:56:30.262Z","userId":"68d251ae6ed7fd2d73b9a185"}

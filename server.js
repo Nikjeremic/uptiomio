@@ -10,6 +10,7 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const cron = require('node-cron');
+const https = require('https');
 
 // Security packages
 const helmet = require('helmet');
@@ -820,6 +821,56 @@ const authenticateToken = (req, res, next) => {
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ ok: true });
+});
+
+// NBS middle exchange rates for EUR and USD
+app.get('/api/nbs-rates', async (req, res) => {
+  const fetchJson = (url) =>
+    new Promise((resolve, reject) => {
+      https
+        .get(
+          url,
+          {
+            headers: {
+              Accept: 'application/json'
+            }
+          },
+          (resp) => {
+            let data = '';
+            resp.on('data', (chunk) => {
+              data += chunk;
+            });
+            resp.on('end', () => {
+              try {
+                const parsed = JSON.parse(data);
+                resolve(parsed);
+              } catch (e) {
+                reject(e);
+              }
+            });
+          }
+        )
+        .on('error', (err) => reject(err));
+    });
+
+  try {
+    const [eurData, usdData] = await Promise.all([
+      fetchJson('https://api.nbs.rs/api/exchangerates/rates/daily?currency=EUR&format=json'),
+      fetchJson('https://api.nbs.rs/api/exchangerates/rates/daily?currency=USD&format=json')
+    ]);
+
+    const eur = Array.isArray(eurData) ? eurData[0] : eurData?.[0];
+    const usd = Array.isArray(usdData) ? usdData[0] : usdData?.[0];
+
+    res.json({
+      date: eur?.effectiveDate || usd?.effectiveDate || null,
+      eur: eur?.middleRate || null,
+      usd: usd?.middleRate || null
+    });
+  } catch (error) {
+    logger.error('Failed to fetch NBS rates', { error: error.message });
+    res.status(500).json({ message: 'Failed to fetch NBS rates' });
+  }
 });
 
 // Profile: GET (create if missing) and PUT

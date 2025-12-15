@@ -58,6 +58,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       label: 'Profile',
       icon: 'pi pi-briefcase',
       adminOnly: false
+    },
+    {
+      id: 5,
+      label: 'Samooporezivanje',
+      icon: 'pi pi-percentage',
+      adminOnly: false
     }
   ];
 
